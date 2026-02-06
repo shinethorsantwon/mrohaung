@@ -106,15 +106,28 @@ exports.acceptFriendRequest = async (req, res) => {
 
 exports.getFriends = async (req, res) => {
     try {
-        const [friends] = await pool.execute(
-            `SELECT u.id, u.username, u.displayName, u.avatarUrl 
-             FROM Friendship f
-             JOIN User u ON (f.userId = u.id OR f.friendId = u.id)
-             WHERE (f.userId = ? OR f.friendId = ?) 
-             AND f.status = 'ACCEPTED' 
-             AND u.id != ?`,
-            [req.userId, req.userId, req.userId]
-        );
+        let friends;
+        try {
+            [friends] = await pool.execute(
+                `SELECT u.id, u.username, u.displayName, u.avatarUrl 
+                 FROM Friendship f
+                 JOIN User u ON (f.userId = u.id OR f.friendId = u.id)
+                 WHERE (f.userId = ? OR f.friendId = ?) 
+                 AND f.status = 'ACCEPTED' 
+                 AND u.id != ?`,
+                [req.userId, req.userId, req.userId]
+            );
+        } catch (e) {
+            [friends] = await pool.execute(
+                `SELECT u.id, u.username, u.avatarUrl 
+                 FROM Friendship f
+                 JOIN User u ON (f.userId = u.id OR f.friendId = u.id)
+                 WHERE (f.userId = ? OR f.friendId = ?) 
+                 AND f.status = 'ACCEPTED' 
+                 AND u.id != ?`,
+                [req.userId, req.userId, req.userId]
+            );
+        }
 
         res.json(friends);
     } catch (error) {
@@ -125,13 +138,24 @@ exports.getFriends = async (req, res) => {
 
 exports.getPendingRequests = async (req, res) => {
     try {
-        const [requests] = await pool.execute(
-            `SELECT f.id, f.friendId, u.id as userId, u.username, u.displayName, u.avatarUrl 
-             FROM Friendship f
-             JOIN User u ON f.userId = u.id
-             WHERE f.friendId = ? AND f.status = 'PENDING'`,
-            [req.userId]
-        );
+        let requests;
+        try {
+            [requests] = await pool.execute(
+                `SELECT f.id, f.friendId, u.id as userId, u.username, u.displayName, u.avatarUrl 
+                 FROM Friendship f
+                 JOIN User u ON f.userId = u.id
+                 WHERE f.friendId = ? AND f.status = 'PENDING'`,
+                [req.userId]
+            );
+        } catch (e) {
+            [requests] = await pool.execute(
+                `SELECT f.id, f.friendId, u.id as userId, u.username, u.avatarUrl 
+                 FROM Friendship f
+                 JOIN User u ON f.userId = u.id
+                 WHERE f.friendId = ? AND f.status = 'PENDING'`,
+                [req.userId]
+            );
+        }
 
         res.json(requests);
     } catch (error) {
