@@ -2,14 +2,20 @@
     "name": "mrohaung-root",
     "version": "1.0.0",
     "private": true,
+    "workspaces": [
+        "backend",
+        "web"
+    ],
     "scripts": {
-        "build": "cd web && npm install && npm run build",
-        "start": "cd web && npm start",
+        "build": "cd web && npm install && npm run build && cp -r .next ../.next && cp -r public ../public",
+        "start": "next start",
         "dev": "cd web && npm run dev"
     },
     "dependencies": {
         "next": "latest",
-        "express": "latest"
+        "express": "latest",
+        "react": "latest",
+        "react-dom": "latest"
     },
     "engines": {
         "node": ">=18.0.0"
