@@ -105,7 +105,7 @@ export default function FriendSuggestions() {
             <div className="space-y-3">
                 {visibleSuggestions.map((suggestion) => (
                     <div key={suggestion.id} className="flex items-start gap-3 group">
-                        <Link href={`/profile/${suggestion.id}`}>
+                        <Link href={`/profile/${suggestion.username}`}>
                             {suggestion.avatarUrl ? (
                                 <img
                                     src={fixUrl(suggestion.avatarUrl)}
@@ -118,7 +118,7 @@ export default function FriendSuggestions() {
                         </Link>
 
                         <div className="flex-1 min-w-0">
-                            <Link href={`/profile/${suggestion.id}`}>
+                            <Link href={`/profile/${suggestion.username}`}>
                                 <p className="text-white font-medium text-sm hover:underline cursor-pointer truncate">
                                     {suggestion.displayName || suggestion.username}
                                 </p>

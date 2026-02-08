@@ -11,6 +11,10 @@ interface AuthContextType {
     login: (token: string, user: any) => void;
     logout: () => void;
     updateUser: (userData: any) => void;
+    openAuthModal: (mode?: 'login' | 'register') => void;
+    closeAuthModal: () => void;
+    isAuthModalOpen: boolean;
+    authModalMode: 'login' | 'register';
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -64,8 +68,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('user', JSON.stringify(updatedUser));
     };
 
+    const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+    const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login');
+
+    const openAuthModal = (mode: 'login' | 'register' = 'login') => {
+        setAuthModalMode(mode);
+        setIsAuthModalOpen(true);
+    };
+
+    const closeAuthModal = () => setIsAuthModalOpen(false);
+
     return (
-        <AuthContext.Provider value={{ user, token, loading, login, logout, updateUser }}>
+        <AuthContext.Provider value={{
+            user, token, loading, login, logout, updateUser,
+            openAuthModal, closeAuthModal, isAuthModalOpen, authModalMode
+        }}>
             {children}
         </AuthContext.Provider>
     );

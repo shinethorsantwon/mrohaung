@@ -9,6 +9,7 @@ import api from '@/lib/api';
 import ReportModal from './ReportModal';
 import { useSocket } from '@/lib/socket';
 import { fixUrl } from '@/lib/utils';
+import { useAuth } from '@/lib/AuthContext';
 
 interface PostCardProps {
     post: any;
@@ -28,16 +29,12 @@ export default function PostCard({ post, isGuest = false, onDelete, onUpdate, on
     const [firstComment, setFirstComment] = useState<any>(null);
     const [showMenu, setShowMenu] = useState(false);
     const [showReportModal, setShowReportModal] = useState(false);
-    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [isExpanded, setIsExpanded] = useState(false);
     const [isCommentExpanded, setIsCommentExpanded] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
-        setCurrentUserId(user.id);
-
         const handleClickOutside = (event: MouseEvent) => {
             if (showMenu && menuRef.current && !menuRef.current.contains(event.target as Node)) {
                 setShowMenu(false);
@@ -110,9 +107,12 @@ export default function PostCard({ post, isGuest = false, onDelete, onUpdate, on
         }
     };
 
+    const { openAuthModal, user: sessionUser } = useAuth();
+    const currentUserId = sessionUser?.id;
+
     const handleReaction = async (type: string) => {
-        if (isGuest) {
-            alert('Please login to react to posts!');
+        if (!currentUserId) {
+            openAuthModal('login');
             return;
         }
 

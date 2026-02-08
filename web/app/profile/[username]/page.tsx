@@ -1,7 +1,7 @@
 import ProfilePageContent from '@/components/ProfilePageContent';
 
 export function generateStaticParams() {
-    return [{ id: 'user' }];
+    return [{ username: 'user' }];
 }
 
 export default async function ProfilePage({ params }: { params: any }) {

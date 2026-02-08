@@ -12,12 +12,21 @@ import api from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
 import { fixUrl } from '@/lib/utils';
 import PostModal from '@/components/PostModal';
+import AuthModal from '@/components/AuthModal';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const router = useRouter();
 
-    const { user: currentUser, logout, updateUser } = useAuth();
+    const {
+        user: currentUser,
+        logout,
+        updateUser,
+        isAuthModalOpen,
+        closeAuthModal,
+        authModalMode
+    } = useAuth();
+
     const [showUserMenu, setShowUserMenu] = useState(false);
     const [isAdmin, setIsAdmin] = useState(false);
     const [showMessages, setShowMessages] = useState(false);
@@ -93,7 +102,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             if (!currentUser) {
                 return [
                     { href: '/', label: 'Feed', icon: Home },
-                    { href: '/login', label: 'Login', icon: LogOut },
                 ];
             }
 
@@ -114,6 +122,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
     const handleLogout = () => {
         logout();
+        setShowUserMenu(false);
     };
 
     const isActive = (href: string) => {
@@ -177,7 +186,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
     return (
         <div className="min-h-screen bg-[#0f172a] text-[#f8fafc]">
-            <nav className="fixed top-0 w-full z-[1000] bg-[#0f172a]/80 backdrop-blur-md border-b border-[#1e293b]">
+            <nav className="fixed top-0 w-full z-[100] bg-[#0f172a]/80 backdrop-blur-md border-b border-[#1e293b]">
                 <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
                     <Link
                         href="/"
@@ -186,7 +195,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                         MROHAUNG
                     </Link>
 
-                    <div className="hidden md:flex flex-1 mx-8">
+                    <div className="hidden md:flex flex-1 mx-8 text-slate-800">
                         <SearchBar />
                     </div>
 
@@ -199,7 +208,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
                                 <div className="relative">
                                     <button
-                                        onClick={() => setShowUserMenu((v) => !v)}
+                                        onClick={() => setShowUserMenu(v => !v)}
                                         aria-label="Open user menu"
                                         className="w-10 h-10 rounded-full border-2 border-[#1e293b] cursor-pointer hover:opacity-80 transition-opacity overflow-hidden"
                                     >
@@ -262,8 +271,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                                     <Link
                                         href={item.href}
                                         className={`w-full flex items-center gap-4 px-4 py-3 rounded-2xl transition-all ${active
-                                            ? 'bg-blue-600/10 text-blue-500 font-bold'
-                                            : 'text-[#94a3b8] hover:bg-[#1e293b] hover:text-white'
+                                                ? 'bg-blue-600/10 text-blue-500 font-bold'
+                                                : 'text-[#94a3b8] hover:bg-[#1e293b] hover:text-white'
                                             }`}
                                     >
                                         <Icon className="w-5 h-5" />
@@ -280,8 +289,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                             <button
                                 onClick={() => setShowMessages(!showMessages)}
                                 className={`w-full flex items-center gap-4 px-4 py-3 rounded-2xl transition-all ${pathname?.startsWith('/messages')
-                                    ? 'bg-blue-600/10 text-blue-500 font-bold'
-                                    : 'text-[#94a3b8] hover:bg-[#1e293b] hover:text-white'
+                                        ? 'bg-blue-600/10 text-blue-500 font-bold'
+                                        : 'text-[#94a3b8] hover:bg-[#1e293b] hover:text-white'
                                     }`}
                             >
                                 <MessageCircle className="w-5 h-5" />
@@ -355,8 +364,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                                                         >
                                                             <div
                                                                 className={`max-w-[80%] px-3 py-2 rounded-xl text-xs ${msg.senderId === currentUser?.id
-                                                                    ? 'bg-blue-600 text-white rounded-br-none'
-                                                                    : 'bg-[#334155] text-white rounded-bl-none'
+                                                                        ? 'bg-blue-600 text-white rounded-br-none'
+                                                                        : 'bg-[#334155] text-white rounded-bl-none'
                                                                     }`}
                                                             >
                                                                 <p>{msg.content}</p>
@@ -396,17 +405,20 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     )}
                 </aside>
 
-                <div className="flex-1 min-w-0">{children}</div>
+                <main className="flex-1 min-w-0">{children}</main>
             </div>
 
-            {/* Global Deep-link Post Modal */}
+            {/* Global Modals */}
+            <AuthModal
+                isOpen={isAuthModalOpen}
+                onClose={closeAuthModal}
+                initialMode={authModalMode}
+            />
+
             {deepLinkPost && (
                 <PostModal
                     isOpen={showDeepLinkModal}
-                    onClose={() => {
-                        setShowDeepLinkModal(false);
-                        // DeepLinkPost remains for cache if we go back
-                    }}
+                    onClose={() => setShowDeepLinkModal(false)}
                     post={deepLinkPost}
                     currentUserId={currentUser?.id}
                 />

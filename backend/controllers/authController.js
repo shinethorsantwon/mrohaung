@@ -42,22 +42,22 @@ const generateUsername = async (displayName, email) => {
 
 exports.register = async (req, res) => {
     try {
-        const { displayName, username: usernameInput, email, password } = req.body;
+        const { displayName, email, password, dob, gender, phoneNumber } = req.body;
 
-        const username = usernameInput || await generateUsername(displayName, email);
-
-        if (!email || !password) {
-            return res.status(400).json({ message: 'Email and password are required' });
+        if (!email || !password || !displayName) {
+            return res.status(400).json({ message: 'Missing required fields (email, password, displayName)' });
         }
+
+        const username = await generateUsername(displayName, email);
 
         // Check if user exists
         const [existingUsers] = await pool.execute(
-            'SELECT * FROM User WHERE email = ? OR username = ?',
-            [email, username]
+            'SELECT * FROM User WHERE email = ?',
+            [email]
         );
 
         if (existingUsers.length > 0) {
-            return res.status(400).json({ message: 'User already exists' });
+            return res.status(400).json({ message: 'User with this email already exists' });
         }
 
         // Hash password
@@ -66,13 +66,13 @@ exports.register = async (req, res) => {
 
         // Create user
         await pool.execute(
-            'INSERT INTO User (id, username, email, password, displayName) VALUES (?, ?, ?, ?, ?)',
-            [userId, username, email, hashedPassword, displayName || username]
+            'INSERT INTO User (id, username, email, password, displayName, dob, gender, phoneNumber) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            [userId, username, email, hashedPassword, displayName, dob || null, gender || null, phoneNumber || null]
         );
 
         res.status(201).json({ message: 'User registered successfully', userId, username });
     } catch (error) {
-        console.error(error);
+        console.error('Registration Error:', error);
         res.status(500).json({ message: 'Internal server error' });
     }
 };

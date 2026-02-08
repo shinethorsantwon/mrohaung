@@ -20,6 +20,9 @@ model User {
   coverUrl              String?
   coverOffset           Int                        @default(50)
   isPrivate             Boolean                    @default(false)
+  dob                   DateTime?
+  gender                String?
+  phoneNumber           String?
   posts                 Post[]
   friends               Friendship[]               @relation("user")
   friendOf              Friendship[]               @relation("friend")
