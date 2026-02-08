@@ -1,0 +1,14 @@
+RewriteEngine On
+RewriteBase /
+RewriteRule ^api/(.*)$ http://127.0.0.1:5000/api/$1 [P,L]
+RewriteRule ^uploads/(.*)$ http://127.0.0.1:5000/uploads/$1 [P,L]
+RewriteRule ^socket.io/(.*)$ http://127.0.0.1:5000/socket.io/$1 [P,L]
+RewriteRule ^_next/ - [L]
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^ - [L]
+RewriteCond %{DOCUMENT_ROOT}/$1.html -f
+RewriteRule ^(.*)$ $1.html [L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule . /index.html [L]
+Options -Indexes

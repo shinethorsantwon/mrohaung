@@ -25,8 +25,9 @@ export default function FeedPage() {
     const fetchPosts = async () => {
       try {
         const response = await api.get('/posts/feed?page=1&limit=10');
-        setPosts(response.data);
-        setHasMore(response.data.length === 10);
+        const data = Array.isArray(response.data) ? response.data : [];
+        setPosts(data);
+        setHasMore(data.length === 10);
       } catch (error) {
         console.error('Failed to fetch posts:', error);
       } finally {
@@ -57,10 +58,11 @@ export default function FeedPage() {
     try {
       const nextPage = page + 1;
       const response = await api.get(`/posts/feed?page=${nextPage}&limit=10`);
-      if (response.data.length > 0) {
-        setPosts(prev => [...prev, ...response.data]);
+      const data = Array.isArray(response.data) ? response.data : [];
+      if (data.length > 0) {
+        setPosts(prev => [...prev, ...data]);
         setPage(nextPage);
-        setHasMore(response.data.length === 10);
+        setHasMore(data.length === 10);
       } else {
         setHasMore(false);
       }

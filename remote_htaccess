@@ -1,5 +1,0 @@
-PassengerAppRoot /home/u860480593/domains/mrohaung.com/public_html
-PassengerAppType node
-PassengerNodejs /opt/alt/alt-nodejs22/root/bin/node
-PassengerStartupFile server.js
-PassengerBaseURI /

@@ -1,26 +1,34 @@
-<IfModule mod_rewrite.c>
-  RewriteEngine On
-  RewriteBase /
+# Handle Next.js Static Export
+RewriteEngine On
+RewriteBase /
 
-  # 1. Skip rewrite for actual files and directories
-  RewriteCond %{REQUEST_FILENAME} -f [OR]
-  RewriteCond %{REQUEST_FILENAME} -d
-  RewriteRule ^ - [L]
-
-  # 2. Specifically allow _next folder static assets to be served directly
-  RewriteRule ^_next/(.*)$ _next/$1 [L]
-
-  # 3. Handle trailing slashes (Next.js trailingSlash: true compatibility)
-  # If /about/ exists as /about/index.html, serve it
-  RewriteCond %{DOCUMENT_ROOT}/$1/index.html -f
-  RewriteRule ^(.*)/$ $1/index.html [L]
-
-  # 4. Map extension-less URLs to .html files
-  # /login -> /login.html
-  RewriteCond %{DOCUMENT_ROOT}/$1.html -f
-  RewriteRule ^(.*)$ $1.html [L]
-
-  # 5. Fallback for Client-Side Routing (SPA mode)
-  # If nothing matches, serve index.html
-  RewriteRule ^ index.html [L]
+# 1. Force No-Cache for HTML/JSON
+<IfModule mod_headers.c>
+    <FilesMatch "\.(html|json)$">
+        Header set Cache-Control "no-cache, no-store, must-revalidate"
+        Header set Pragma "no-cache"
+        Header set Expires 0
+    </FilesMatch>
+    <FilesMatch "\.(js|css)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
 </IfModule>
+
+# 2. DO NOT rewrite _next folder to index.html (Vital for fixing syntax error)
+RewriteRule ^_next/ - [L]
+
+# 3. Serve actual files directly
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^ - [L]
+
+# 4. Handle Clean URLs for Pages
+RewriteCond %{DOCUMENT_ROOT}/$1.html -f
+RewriteRule ^(.*)$ $1.html [L]
+
+# 5. Fallback for Client-Side Routing
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule . /index.html [L]
+
+# Security
+Options -Indexes

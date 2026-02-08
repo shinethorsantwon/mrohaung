@@ -48,7 +48,7 @@ export default function FriendSuggestions() {
                 response = await api.get('/suggestions/random?limit=5');
             }
 
-            setSuggestions(response.data);
+            setSuggestions(Array.isArray(response.data) ? response.data : []);
         } catch (error) {
             console.error('Failed to fetch suggestions:', error);
         } finally {

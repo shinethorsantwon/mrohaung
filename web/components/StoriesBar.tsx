@@ -53,7 +53,7 @@ export default function StoriesBar() {
     const fetchStories = async () => {
         try {
             const response = await api.get('/stories');
-            setStoryGroups(response.data);
+            setStoryGroups(Array.isArray(response.data) ? response.data : []);
         } catch (error) {
             console.error('Failed to fetch stories:', error);
         }

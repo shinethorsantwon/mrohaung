@@ -1,43 +1,28 @@
-const { createServer } = require('http');
-const { parse } = require('url');
+/**
+ * MROHAUNG ROOT ENTRY POINT
+ * This file is designed for Hostinger Node.js App Manager.
+ * It strictly loads the backend API since the frontend is served statically by Apache.
+ */
+
 const path = require('path');
 
-// Port detection from Hostinger
-const port = process.env.PORT || 3000;
-const startMode = process.env.START_MODE || 'frontend';
+// Port is provided by Hostinger
+const port = process.env.PORT || 5000;
 
-console.log(`Starting Mrohaung Server in ${startMode} mode...`);
-console.log(`Listening on port: ${port}`);
+console.log('--- Mrohaung Server Initiation ---');
+console.log(`Target Port: ${port}`);
+console.log('Mode: Backend (API Only)');
 
-if (startMode === 'backend') {
-    // Load Backend
-    console.log('Loading Backend (API)...');
+// Ensure environment variables are loaded
+require('dotenv').config();
+
+// Load the backend server
+try {
+    console.log('Loading Backend Service...');
     require('./backend/index.js');
-} else {
-    // Load Frontend (Next.js)
-    console.log('Loading Frontend (Next.js)...');
-    try {
-        const next = require('next');
-        const app = next({ dev: false, dir: path.join(__dirname, 'web') });
-        const handle = app.getRequestHandler();
-
-        app.prepare().then(() => {
-            createServer((req, res) => {
-                const parsedUrl = parse(req.url, true);
-                handle(req, res, parsedUrl);
-            }).listen(port, (err) => {
-                if (err) {
-                    console.error('Error starting frontend server:', err);
-                    process.exit(1);
-                }
-                console.log(`> Frontend (Next.js) is ready on port ${port}`);
-            });
-        }).catch(err => {
-            console.error('Next.js app preparation failed:', err);
-            process.exit(1);
-        });
-    } catch (err) {
-        console.error('Failed to load next module. Make sure dependencies are installed.', err);
-        process.exit(1);
-    }
+    console.log('✅ Backend Service Loaded Successfully.');
+} catch (err) {
+    console.error('❌ CRITICAL ERROR: Failed to load backend service.');
+    console.error(err);
+    process.exit(1);
 }
