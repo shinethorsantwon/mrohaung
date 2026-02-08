@@ -1,33 +1,27 @@
 # ============================================
-# Node.js/Express Backend Dockerfile
+# Node.js/Express Backend Dockerfile for Render
 # ============================================
-# Stage 1: Build/Production
-FROM node:20-alpine
-
-# Install build tools and shared libraries for better-sqlite3 and Prisma
-RUN apk add --no-cache \
-    python3 \
-    make \
-    g++ \
-    libc6-compat \
-    openssl \
-    libnsl \
-    && ln -sf python3 /usr/bin/python
+FROM node:20
 
 WORKDIR /app
 
+# Install build dependencies for better-sqlite3
+RUN apt-get update && apt-get install -y python3 make g++
+
 # Copy package files
-COPY package.json package-lock.json* ./
+COPY package.json ./
+# If package-lock.json exists, copy it. Otherwise skip.
+COPY package-lock.json* ./
 
 # Install dependencies
-RUN npm install --production && \
-    npm cache clean --force
+RUN npm install
 
 # Copy application source
 COPY . .
 
-# Generate Prisma Client (if using Prisma)
-RUN DATABASE_URL="mysql://root:password@localhost:3306/db" npx prisma generate
+# Generate Prisma Client
+# Note: DATABASE_URL doesn't need to be real for generation
+RUN npx prisma generate
 
 # Create uploads directory
 RUN mkdir -p uploads
@@ -37,10 +31,6 @@ ENV NODE_ENV=production
 
 # Expose backend port
 EXPOSE 5000
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD node -e "require('http').get('http://localhost:5000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})" || exit 1
 
 # Start the application
 CMD ["node", "index.js"]
