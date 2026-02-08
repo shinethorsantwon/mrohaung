@@ -15,7 +15,7 @@ interface PostCardProps {
     post: any;
     isGuest?: boolean;
     onDelete?: (id?: string) => void;
-    onUpdate?: () => void;
+    onUpdate?: (post: any) => void;
     onEdit?: (post: any) => void;
     onViewComments?: (post: any) => void;
 }
@@ -24,6 +24,14 @@ export default function PostCard({ post, isGuest = false, onDelete, onUpdate, on
     const [reactionType, setReactionType] = useState<string | null>(null);
     const [likeCount, setLikeCount] = useState(post._count?.likes || 0);
     const [commentCount, setCommentCount] = useState(post._count?.comments || 0);
+
+    useEffect(() => {
+        setLikeCount(post._count?.likes || 0);
+    }, [post._count?.likes]);
+
+    useEffect(() => {
+        setCommentCount(post._count?.comments || 0);
+    }, [post._count?.comments]);
     const [showReactions, setShowReactions] = useState(false);
 
     const [firstComment, setFirstComment] = useState<any>(null);

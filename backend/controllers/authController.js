@@ -2,6 +2,8 @@ const pool = require('../utils/prisma'); // now returns a mysql2 pool
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
+const crypto = require('crypto');
+const sendEmail = require('../utils/sendEmail');
 
 const slugify = (input) => {
     const raw = (input || '').toString().trim();
@@ -63,16 +65,73 @@ exports.register = async (req, res) => {
         // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
         const userId = uuidv4();
+        const verificationToken = crypto.randomBytes(32).toString('hex');
 
         // Create user
         await pool.execute(
-            'INSERT INTO User (id, username, email, password, displayName, dob, gender, phoneNumber) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-            [userId, username, email, hashedPassword, displayName, dob || null, gender || null, phoneNumber || null]
+            'INSERT INTO User (id, username, email, password, displayName, dob, gender, phoneNumber, verificationToken, isVerified) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [userId, username, email, hashedPassword, displayName, dob || null, gender || null, phoneNumber || null, verificationToken, false]
         );
 
-        res.status(201).json({ message: 'User registered successfully', userId, username });
+        // Send verification email
+        const frontendUrl = process.env.FRONTEND_URL || 'https://mrohaung.com';
+        const verifyUrl = `${frontendUrl}/verify-email?token=${verificationToken}`;
+
+        try {
+            await sendEmail({
+                email: email,
+                subject: 'Verify your MROHAUNG Account',
+                html: `
+                    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+                        <h2 style="color: #4f46e5;">Welcome to MROHAUNG!</h2>
+                        <p>Thank you for joining our community. To get started, please verify your email address by clicking the button below:</p>
+                        <div style="text-align: center; margin: 30px 0;">
+                            <a href="${verifyUrl}" style="background-color: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Verify Email Address</a>
+                        </div>
+                        <p>If the button doesn't work, copy and paste this link into your browser:</p>
+                        <p style="word-break: break-all; color: #666;">${verifyUrl}</p>
+                        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+                        <p style="font-size: 12px; color: #999;">If you didn't create an account with us, please ignore this email.</p>
+                    </div>
+                `
+            });
+        } catch (emailError) {
+            console.error('Failed to send verification email:', emailError);
+            // We catch the error but don't fail registration, though ideally we might notify user
+        }
+
+        res.status(201).json({ message: 'User registered successfully. Please check your email to verify your account.', userId, username });
     } catch (error) {
         console.error('Registration Error:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
+
+exports.verifyEmail = async (req, res) => {
+    try {
+        const { token } = req.body;
+
+        if (!token) {
+            return res.status(400).json({ message: 'Token is required' });
+        }
+
+        const [users] = await pool.execute(
+            'SELECT id FROM User WHERE verificationToken = ?',
+            [token]
+        );
+
+        if (users.length === 0) {
+            return res.status(400).json({ message: 'Invalid or expired verification token' });
+        }
+
+        await pool.execute(
+            'UPDATE User SET isVerified = true, verificationToken = NULL WHERE id = ?',
+            [users[0].id]
+        );
+
+        res.json({ message: 'Email verified successfully! You can now use all features.' });
+    } catch (error) {
+        console.error('Verification Error:', error);
         res.status(500).json({ message: 'Internal server error' });
     }
 };
@@ -93,6 +152,14 @@ exports.login = async (req, res) => {
             return res.status(400).json({ message: 'Invalid credentials' });
         }
 
+        // Check if verified
+        if (!user.isVerified) {
+            return res.status(403).json({
+                message: 'Please verify your email first',
+                needsVerification: true
+            });
+        }
+
         // Check password
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
@@ -110,7 +177,8 @@ exports.login = async (req, res) => {
                 username: user.username,
                 email: user.email,
                 displayName: user.displayName,
-                avatarUrl: user.avatarUrl
+                avatarUrl: user.avatarUrl,
+                isVerified: !!user.isVerified
             }
         });
     } catch (error) {
@@ -122,7 +190,7 @@ exports.login = async (req, res) => {
 exports.me = async (req, res) => {
     try {
         const [users] = await pool.execute(
-            'SELECT id, username, email, displayName, avatarUrl FROM User WHERE id = ?',
+            'SELECT id, username, email, displayName, avatarUrl, isVerified FROM User WHERE id = ?',
             [req.userId]
         );
 
@@ -150,3 +218,4 @@ exports.me = async (req, res) => {
         res.status(500).json({ message: 'Internal server error' });
     }
 };
+

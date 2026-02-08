@@ -15,7 +15,7 @@ interface PostModalProps {
     isOpen: boolean;
     onClose: () => void;
     post: any;
-    onUpdate?: () => void;
+    onUpdate?: (post: any) => void;
     onDelete?: (id?: string) => void;
     currentUserId?: string;
 }
@@ -532,7 +532,7 @@ export default function PostModal({ isOpen, onClose, post, onUpdate, onDelete, c
             await api.put(`/posts/${post.id}`, { content: editContent });
             post.content = editContent;
             setIsEditing(false);
-            if (onUpdate) onUpdate();
+            if (onUpdate) onUpdate(post);
         } catch (error) {
             console.error('Failed to update post:', error);
             alert('Failed to update post');

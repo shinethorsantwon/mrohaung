@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useInView } from 'react-intersection-observer';
+import { ShieldAlert, CheckCircle2 } from 'lucide-react';
 import CreatePost from '@/components/CreatePost';
 import PostCard from '@/components/PostCard';
 import PostModal from '@/components/PostModal';
@@ -10,9 +12,11 @@ import SearchBar from '@/components/SearchBar';
 import AppShell from '@/components/AppShell';
 import api from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
+import { useSocket } from '@/lib/socket';
 
 export default function FeedPage() {
   const { user: currentUser } = useAuth();
+  const { socket } = useSocket();
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -20,7 +24,14 @@ export default function FeedPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [selectedPost, setSelectedPost] = useState<any>(null);
   const [showPostModal, setShowPostModal] = useState(false);
+  const [showVerificationSuccess, setShowVerificationSuccess] = useState(false);
 
+  const { ref, inView } = useInView({
+    threshold: 0,
+    rootMargin: '400px',
+  });
+
+  // Fetch initial posts
   useEffect(() => {
     const fetchPosts = async () => {
       try {
@@ -37,21 +48,45 @@ export default function FeedPage() {
     fetchPosts();
   }, []);
 
+  // Infinite Scroll Trigger
   useEffect(() => {
-    const handleScroll = () => {
-      if (
-        window.innerHeight + document.documentElement.scrollTop
-        >= document.documentElement.offsetHeight - 100
-      ) {
-        if (!loadingMore && hasMore) {
-          loadMorePosts();
-        }
-      }
-    };
+    if (inView && hasMore && !loadingMore && !loading) {
+      loadMorePosts();
+    }
+  }, [inView, hasMore, loadingMore, loading]);
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [loadingMore, hasMore, page]);
+  // Real-time updates
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.on('new_post', (newPost: any) => {
+      setPosts((prev) => {
+        // Avoid duplicates
+        if (prev.some(p => p.id === newPost.id)) return prev;
+        return [newPost, ...prev];
+      });
+    });
+
+    socket.on('like_update', ({ postId, likeCount }: { postId: string, likeCount: number }) => {
+      setPosts((prev) => prev.map(post => {
+        if (post.id === postId) {
+          return {
+            ...post,
+            _count: {
+              ...post._count,
+              likes: likeCount
+            }
+          };
+        }
+        return post;
+      }));
+    });
+
+    return () => {
+      socket.off('new_post');
+      socket.off('like_update');
+    };
+  }, [socket]);
 
   const loadMorePosts = async () => {
     setLoadingMore(true);
@@ -60,7 +95,10 @@ export default function FeedPage() {
       const response = await api.get(`/posts/feed?page=${nextPage}&limit=10`);
       const data = Array.isArray(response.data) ? response.data : [];
       if (data.length > 0) {
-        setPosts(prev => [...prev, ...data]);
+        setPosts(prev => {
+          const freshData = data.filter(newPost => !prev.some(p => p.id === newPost.id));
+          return [...prev, ...freshData];
+        });
         setPage(nextPage);
         setHasMore(data.length === 10);
       } else {
@@ -75,33 +113,61 @@ export default function FeedPage() {
 
   return (
     <AppShell>
-      {/* Conditionally show stories only if logged in? Or show public stories? 
-          For now, maybe just show them or hide if empty. We can keep it. */}
+      {/* Verification Banner */}
+      {currentUser && !currentUser.isVerified && (
+        <div className="mb-6 bg-red-500/10 border border-red-500/20 rounded-2xl p-4 flex items-center gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
+          <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center flex-shrink-0">
+            <ShieldAlert className="w-5 h-5 text-red-500" />
+          </div>
+          <div className="flex-1">
+            <h4 className="text-white font-bold text-sm">Action Required: Verify your identity</h4>
+            <p className="text-red-400/80 text-xs">Please check your email to verify your account. Unverified accounts cannot post or interact.</p>
+          </div>
+          <button
+            onClick={() => {/* TODO: Resend verification email */ }}
+            className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-500 rounded-lg text-xs font-bold transition-all"
+          >
+            Resend Email
+          </button>
+        </div>
+      )}
+
+      {showVerificationSuccess && (
+        <div className="mb-6 bg-green-500/10 border border-green-500/20 rounded-2xl p-4 flex items-center gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
+          <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center flex-shrink-0">
+            <CheckCircle2 className="w-5 h-5 text-green-500" />
+          </div>
+          <div className="flex-1">
+            <h4 className="text-white font-bold text-sm">Identity Secured</h4>
+            <p className="text-green-400/80 text-xs">Your email has been verified. Welcome to the Infinity network.</p>
+          </div>
+        </div>
+      )}
+
       {currentUser && <StoriesBar />}
 
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-8">
         <section className="min-w-0">
-          {currentUser ? (
-            <CreatePost onPostCreated={async (newPost?: any) => {
+          {currentUser && currentUser.isVerified && (
+            <CreatePost onPostCreated={(newPost?: any) => {
               if (newPost) {
-                const normalized = {
-                  ...newPost,
-                  _count: { likes: 0, comments: 0 },
-                  author: { ...newPost.author, id: newPost.authorId },
-                };
-                setPosts((prev) => [normalized, ...prev]);
-              } else {
-                const response = await api.get('/posts/feed?page=1&limit=10&_=' + Date.now());
-                setPosts(response.data);
+                // Prepend logic is handled by socket, but we can do it here too for instant feedback
+                setPosts((prev) => {
+                  if (prev.some(p => p.id === newPost.id)) return prev;
+                  return [newPost, ...prev];
+                });
               }
             }} />
-          ) : (
-            <div className="bg-[#1e293b]/50 border border-[#334155] rounded-2xl p-6 text-center mb-6">
-              <h3 className="text-white font-bold text-lg mb-2">Join the conversation</h3>
-              <p className="text-[#94a3b8] mb-4">Sign in to share your thoughts and interact with others.</p>
+          )}
+
+          {!currentUser && (
+            <div className="bg-[#1e293b]/50 border border-[#334155] rounded-3xl p-8 text-center mb-8 relative overflow-hidden group">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600" />
+              <h3 className="text-2xl font-black text-white mb-2">Join the Infinity Network</h3>
+              <p className="text-[#94a3b8] mb-6 max-w-sm mx-auto">Connect with friends, share your universe, and experience the next generation of social media.</p>
               <div className="flex justify-center gap-4">
-                <a href="/login" className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-colors">Login</a>
-                <a href="/signup" className="px-6 py-2 bg-[#334155] hover:bg-[#475569] text-white rounded-xl font-bold transition-colors">Sign Up</a>
+                <a href="/login?mode=login" className="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold transition-all shadow-lg shadow-blue-600/20 active:scale-95">Access System</a>
+                <a href="/login?mode=register" className="px-8 py-3 bg-[#334155] hover:bg-[#475569] text-white rounded-2xl font-bold transition-all active:scale-95">Initialize ID</a>
               </div>
             </div>
           )}
@@ -109,7 +175,7 @@ export default function FeedPage() {
           {loading ? (
             <div className="space-y-6">
               {[1, 2, 3].map(i => (
-                <div key={i} className="bg-[#1e293b]/30 rounded-2xl h-64 animate-pulse" />
+                <div key={i} className="bg-[#1e293b]/30 rounded-3xl h-64 animate-pulse border border-white/5" />
               ))}
             </div>
           ) : (
@@ -120,53 +186,45 @@ export default function FeedPage() {
                   post={post}
                   isGuest={!currentUser}
                   onDelete={(postId) => {
-                    if (postId) {
-                      setPosts(prev => prev.filter(p => p.id !== postId));
-                    } else {
-                      api.get('/posts/feed?page=1&limit=10&_=' + Date.now()).then(res => setPosts(res.data));
-                    }
+                    setPosts(prev => prev.filter(p => p.id !== postId));
                   }}
-                  onUpdate={async () => {
-                    const response = await api.get('/posts/feed?page=1&limit=10&_=' + Date.now());
-                    setPosts(response.data);
+                  onUpdate={(updatedPost) => {
+                    setPosts(prev => prev.map(p => p.id === updatedPost.id ? { ...p, ...updatedPost } : p));
                   }}
                   onEdit={(post) => {
                     setSelectedPost(post);
                     setShowPostModal(true);
                   }}
                   onViewComments={(post) => {
-                    if (!currentUser) return; // Or trigger login
                     setSelectedPost(post);
                     setShowPostModal(true);
                   }}
                 />
               ))}
-              {posts.length === 0 && (
-                <div className="text-center py-20 bg-[#1e293b]/20 rounded-3xl border border-dashed border-[#334155]">
-                  <p className="text-[#64748b]">No posts yet.</p>
+
+              {posts.length === 0 && !loading && (
+                <div className="text-center py-20 bg-[#1e293b]/20 rounded-[2.5rem] border border-dashed border-[#334155] mb-8">
+                  <p className="text-[#64748b] font-medium">The void is empty. Be the first to speck it.</p>
                 </div>
               )}
 
-              {loadingMore && (
-                <div className="flex justify-center py-8">
-                  <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                </div>
-              )}
-
-              {!hasMore && posts.length > 0 && (
-                <div className="text-center py-8">
-                  <p className="text-[#64748b] text-sm">You've reached the end</p>
-                </div>
-              )}
+              {/* Load More Trigger */}
+              <div ref={ref} className="h-20 flex items-center justify-center">
+                {loadingMore && (
+                  <div className="w-8 h-8 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+                )}
+                {!hasMore && posts.length > 0 && (
+                  <p className="text-[#64748b] text-sm font-medium">You've reached the edge of the universe</p>
+                )}
+              </div>
             </div>
           )}
         </section>
 
-        {/* Right Sidebar */}
         <aside className="hidden xl:block">
-          <div className="sticky top-24 space-y-4">
+          <div className="sticky top-24 space-y-6">
+            <SearchBar />
             {currentUser && <FriendSuggestions />}
-            {/* Maybe show something else for guests? trending topics? */}
           </div>
         </aside>
       </div>
@@ -179,13 +237,12 @@ export default function FeedPage() {
             setSelectedPost(null);
           }}
           post={selectedPost}
-          onUpdate={async () => {
-            const response = await api.get('/posts/feed?page=1&limit=10&_=' + Date.now());
-            setPosts(response.data);
+          onUpdate={(updatedPost) => {
+            setPosts(prev => prev.map(p => p.id === updatedPost.id ? { ...p, ...updatedPost } : p));
           }}
-          onDelete={async () => {
-            const response = await api.get('/posts/feed?page=1&limit=10&_=' + Date.now());
-            setPosts(response.data);
+          onDelete={(postId) => {
+            setPosts(prev => prev.filter(p => p.id !== postId));
+            setShowPostModal(false);
           }}
           currentUserId={currentUser?.id}
         />

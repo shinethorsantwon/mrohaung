@@ -41,12 +41,14 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-.custom-scrollbar::-webkit-scrollbar {
-  width: 0px;
-  height: 0px;
-}
-
-.custom-scrollbar {
+.custom-scrollbar,
+.no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+.custom-scrollbar::-webkit-scrollbar,
+.no-scrollbar::-webkit-scrollbar {
+  width: 0px;
+  height: 0px;
 }

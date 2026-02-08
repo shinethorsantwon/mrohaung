@@ -1,11 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Mail, Lock, Sparkles, ArrowRight, Phone, Calendar, User } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { X, Mail, Lock, Sparkles, ArrowRight, Phone, Calendar, User, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 import api from '@/lib/api';
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+function cn(...inputs: ClassValue[]) {
+    return twMerge(clsx(inputs));
+}
 
 interface AuthModalProps {
     isOpen: boolean;
@@ -23,7 +28,27 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
     const [phoneNumber, setPhoneNumber] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
     const { login } = useAuth();
+
+    // Responsive detection
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 640);
+        handleResize();
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    // Sync mode with initialMode if it changes while open
+    useEffect(() => {
+        if (isOpen) setMode(initialMode);
+    }, [isOpen, initialMode]);
+
+    // Clear error on mode change
+    useEffect(() => {
+        setError('');
+    }, [mode]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -47,10 +72,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                 });
                 setMode('login');
                 setError('Registration successful! Please login.');
-                // Reset fields
-                setDisplayName('');
-                setDob('');
-                setPhoneNumber('');
+                // Optional: clear fields
             }
         } catch (err: any) {
             setError(err.response?.data?.message || 'Authentication failed');
@@ -59,183 +81,255 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
         }
     };
 
-    if (!isOpen) return null;
+    const mobileVariants = {
+        hidden: { y: '100%', opacity: 0 },
+        visible: {
+            y: 0,
+            opacity: 1,
+            transition: {
+                type: 'spring',
+                damping: 30,
+                stiffness: 300,
+                mass: 0.8
+            }
+        },
+        exit: {
+            y: '100%',
+            opacity: 0,
+            transition: { duration: 0.3, ease: 'easeInOut' }
+        }
+    } as const;
+
+    const desktopVariants = {
+        hidden: { opacity: 0, scale: 0.95, y: 20 },
+        visible: {
+            opacity: 1,
+            scale: 1,
+            y: 0,
+            transition: {
+                type: 'spring',
+                damping: 20,
+                stiffness: 200
+            }
+        },
+        exit: {
+            opacity: 0,
+            scale: 0.95,
+            y: 20,
+            transition: { duration: 0.2 }
+        }
+    } as const;
+
 
     return (
-        <AnimatePresence mode="wait">
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    onClick={onClose}
-                    className="absolute inset-0 bg-slate-950/80 backdrop-blur-md"
-                />
+        <AnimatePresence>
+            {isOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden">
+                    {/* Backdrop */}
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={onClose}
+                        className={cn(
+                            "absolute inset-0 transition-colors duration-500",
+                            isMobile
+                                ? "bg-white/90 backdrop-blur-xl"
+                                : "bg-black/40 backdrop-blur-sm"
+                        )}
+                    />
 
-                <motion.div
-                    initial={{ scale: 0.9, opacity: 0, y: 20 }}
-                    animate={{ scale: 1, opacity: 1, y: 0 }}
-                    exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                    className="relative w-full max-w-lg overflow-hidden"
-                >
-                    <div className="relative bg-slate-900 border border-white/10 rounded-[2.5rem] shadow-2xl p-8 md:p-10">
-                        {/* Background Gradients */}
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 blur-[50px] rounded-full -mr-16 -mt-16" />
-                        <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-500/10 blur-[50px] rounded-full -ml-16 -mb-16" />
+                    {/* Modal Content */}
+                    <motion.div
+                        variants={isMobile ? mobileVariants : desktopVariants}
+                        initial="hidden"
+                        animate="visible"
+                        exit="exit"
+                        className={cn(
+                            "relative z-50 w-full overflow-hidden",
+                            isMobile
+                                ? "h-screen flex flex-col justify-center px-6"
+                                : "max-w-lg bg-white/80 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl p-8 border border-white/40"
+                        )}
+                    >
+                        {/* Background Decorative Gradients (Desktop) */}
+                        {!isMobile && (
+                            <>
+                                <div className="absolute -top-24 -left-24 w-64 h-64 bg-indigo-500/10 blur-[80px] rounded-full pointer-events-none" />
+                                <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-fuchsia-500/10 blur-[80px] rounded-full pointer-events-none" />
+                            </>
+                        )}
 
                         <button
                             onClick={onClose}
-                            className="absolute top-6 right-6 p-2 rounded-xl hover:bg-white/5 text-slate-400 transition-colors"
+                            className={cn(
+                                "absolute z-50 p-3 rounded-2xl bg-black/5 hover:bg-black/10 text-slate-600 transition-all active:scale-90",
+                                isMobile ? "top-6 right-6" : "top-8 right-8"
+                            )}
+                            aria-label="Close"
                         >
-                            <X className="w-5 h-5" />
+                            <X className="w-6 h-6" />
                         </button>
 
-                        <div className="text-center mb-8">
-                            <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-blue-600 mb-4 shadow-lg shadow-indigo-500/20">
-                                <Sparkles className="w-6 h-6 text-white" />
+                        <div className="relative z-10 w-full max-w-sm mx-auto overflow-y-auto max-h-[90vh] no-scrollbar py-4">
+                            <div className="text-center mb-8">
+                                <motion.div
+                                    initial={{ scale: 0.8, opacity: 0 }}
+                                    animate={{ scale: 1, opacity: 1 }}
+                                    className="inline-flex items-center justify-center w-16 h-16 rounded-3xl bg-gradient-to-tr from-indigo-600 via-violet-600 to-fuchsia-600 mb-6 shadow-xl shadow-indigo-500/20"
+                                >
+                                    <Sparkles className="w-8 h-8 text-white" />
+                                </motion.div>
+                                <h2 className="text-4xl sm:text-5xl font-black text-slate-900 tracking-tight mb-3">
+                                    Welcome to <span className="text-indigo-600">MROHAUNG</span>
+                                </h2>
+                                <p className="text-slate-500 text-lg font-medium">
+                                    {mode === 'login' ? 'Great to see you again!' : 'Join the premium community today'}
+                                </p>
                             </div>
-                            <h2 className="text-2xl font-black text-white tracking-tight">
-                                {mode === 'login' ? 'System Access' : 'Create Infinity ID'}
-                            </h2>
-                            <p className="text-slate-400 text-sm mt-2">
-                                {mode === 'login' ? 'Enter your credentials to continue' : 'Join the MROHAUNG network today'}
-                            </p>
-                        </div>
 
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            {mode === 'register' && (
-                                <>
-                                    <div className="space-y-1.5">
-                                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Identity Name</label>
-                                        <div className="relative group">
-                                            <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-indigo-400 transition-colors" />
-                                            <input
-                                                type="text"
-                                                value={displayName}
-                                                onChange={(e) => setDisplayName(e.target.value)}
-                                                placeholder="Full Name"
-                                                className="w-full pl-11 pr-4 py-3 bg-slate-950/50 border border-white/5 rounded-xl text-white placeholder-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all text-sm font-medium"
-                                                required
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-1.5">
-                                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Date of Birth</label>
+                            <AnimatePresence mode="wait">
+                                <motion.form
+                                    key={mode}
+                                    layout
+                                    initial={{ opacity: 0, x: 20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: -20 }}
+                                    transition={{ duration: 0.2 }}
+                                    onSubmit={handleSubmit}
+                                    className="space-y-4"
+                                >
+                                    {mode === 'register' && (
+                                        <>
                                             <div className="relative group">
-                                                <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-indigo-400 transition-colors" />
+                                                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
                                                 <input
-                                                    type="date"
-                                                    value={dob}
-                                                    onChange={(e) => setDob(e.target.value)}
-                                                    className="w-full pl-11 pr-4 py-3 bg-slate-950/50 border border-white/5 rounded-xl text-white placeholder-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all text-sm font-medium"
+                                                    type="text"
+                                                    value={displayName}
+                                                    onChange={(e) => setDisplayName(e.target.value)}
+                                                    placeholder="Full Name"
+                                                    className="w-full pl-12 pr-4 py-4 bg-slate-100/50 border-2 border-transparent rounded-2xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white transition-all text-base font-semibold"
                                                     required
                                                 />
                                             </div>
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Gender</label>
-                                            <select
-                                                value={gender}
-                                                onChange={(e) => setGender(e.target.value)}
-                                                className="w-full px-4 py-3 bg-slate-950/50 border border-white/5 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all text-sm font-medium appearance-none"
-                                                required
-                                            >
-                                                <option value="male" className="bg-slate-900">Male</option>
-                                                <option value="female" className="bg-slate-900">Female</option>
-                                                <option value="other" className="bg-slate-900">Other</option>
-                                            </select>
-                                        </div>
+
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="relative group">
+                                                    <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
+                                                    <input
+                                                        type="date"
+                                                        value={dob}
+                                                        onChange={(e) => setDob(e.target.value)}
+                                                        className="w-full pl-12 pr-4 py-4 bg-slate-100/50 border-2 border-transparent rounded-2xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white transition-all text-sm font-semibold"
+                                                        required
+                                                    />
+                                                </div>
+                                                <div className="relative">
+                                                    <select
+                                                        value={gender}
+                                                        onChange={(e) => setGender(e.target.value)}
+                                                        className="w-full px-4 py-4 bg-slate-100/50 border-2 border-transparent rounded-2xl text-slate-900 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white transition-all text-sm font-semibold appearance-none"
+                                                        required
+                                                    >
+                                                        <option value="male">Male</option>
+                                                        <option value="female">Female</option>
+                                                        <option value="other">Other</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            <div className="relative group">
+                                                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
+                                                <input
+                                                    type="tel"
+                                                    value={phoneNumber}
+                                                    onChange={(e) => setPhoneNumber(e.target.value)}
+                                                    placeholder="Phone Number"
+                                                    className="w-full pl-12 pr-4 py-4 bg-slate-100/50 border-2 border-transparent rounded-2xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white transition-all text-base font-semibold"
+                                                    required
+                                                />
+                                            </div>
+                                        </>
+                                    )}
+
+                                    <div className="relative group">
+                                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
+                                        <input
+                                            type="email"
+                                            value={email}
+                                            onChange={(e) => setEmail(e.target.value)}
+                                            placeholder="Email Address"
+                                            className="w-full pl-12 pr-4 py-4 bg-slate-100/50 border-2 border-transparent rounded-2xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white transition-all text-base font-semibold"
+                                            required
+                                        />
                                     </div>
 
-                                    <div className="space-y-1.5">
-                                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Phone Number</label>
-                                        <div className="relative group">
-                                            <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-indigo-400 transition-colors" />
-                                            <input
-                                                type="tel"
-                                                value={phoneNumber}
-                                                onChange={(e) => setPhoneNumber(e.target.value)}
-                                                placeholder="+1 234 567 890"
-                                                className="w-full pl-11 pr-4 py-3 bg-slate-950/50 border border-white/5 rounded-xl text-white placeholder-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all text-sm font-medium"
-                                                required
-                                            />
-                                        </div>
+                                    <div className="relative group">
+                                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
+                                        <input
+                                            type={showPassword ? "text" : "password"}
+                                            value={password}
+                                            onChange={(e) => setPassword(e.target.value)}
+                                            placeholder="Password"
+                                            className="w-full pl-12 pr-12 py-4 bg-slate-100/50 border-2 border-transparent rounded-2xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white transition-all text-base font-semibold"
+                                            required
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1"
+                                        >
+                                            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                        </button>
                                     </div>
-                                </>
-                            )}
 
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Secure Email</label>
-                                <div className="relative group">
-                                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-blue-400 transition-colors" />
-                                    <input
-                                        type="email"
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
-                                        placeholder="name@nexus.com"
-                                        className="w-full pl-11 pr-4 py-3 bg-slate-950/50 border border-white/5 rounded-xl text-white placeholder-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all text-sm font-medium"
-                                        required
-                                    />
-                                </div>
-                            </div>
+                                    {error && (
+                                        <motion.div
+                                            initial={{ opacity: 0, scale: 0.95 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            className="p-4 rounded-2xl bg-red-50 text-red-600 text-sm font-bold text-center border border-red-100"
+                                        >
+                                            {error}
+                                        </motion.div>
+                                    )}
 
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Access Cipher</label>
-                                <div className="relative group">
-                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-purple-400 transition-colors" />
-                                    <input
-                                        type="password"
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                        placeholder="••••••••"
-                                        className="w-full pl-11 pr-4 py-3 bg-slate-950/50 border border-white/5 rounded-xl text-white placeholder-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500/30 transition-all text-sm font-medium"
-                                        required
-                                    />
-                                </div>
-                            </div>
+                                    <motion.button
+                                        whileHover={{ scale: 1.02 }}
+                                        whileTap={{ scale: 0.98 }}
+                                        type="submit"
+                                        disabled={loading}
+                                        className="w-full py-5 bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-700 text-white font-black rounded-2xl shadow-xl shadow-indigo-500/25 flex items-center justify-center gap-2 text-base uppercase tracking-wider transition-all disabled:opacity-70 mt-4"
+                                    >
+                                        {loading ? (
+                                            <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        ) : (
+                                            <>
+                                                {mode === 'login' ? 'Sign In Securely' : 'Create Identity'}
+                                                <ArrowRight className="w-5 h-5" />
+                                            </>
+                                        )}
+                                    </motion.button>
+                                </motion.form>
+                            </AnimatePresence>
 
-                            {error && (
-                                <motion.div
-                                    initial={{ opacity: 0, y: -10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold text-center"
+                            <div className="mt-8 text-center">
+                                <button
+                                    onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
+                                    className="text-slate-500 text-sm font-bold hover:text-indigo-600 transition-colors inline-flex items-center gap-1 group"
                                 >
-                                    {error}
-                                </motion.div>
-                            )}
-
-                            <button
-                                type="submit"
-                                disabled={loading}
-                                className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-xl shadow-lg shadow-indigo-600/20 transition-all transform active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2 text-sm uppercase tracking-wider"
-                            >
-                                {loading ? (
-                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                ) : (
-                                    <>
-                                        {mode === 'login' ? 'Access System' : 'Initialize ID'}
-                                        <ArrowRight className="w-4 h-4" />
-                                    </>
-                                )}
-                            </button>
-                        </form>
-
-                        <div className="mt-8 pt-6 border-t border-white/5 flex flex-col gap-4">
-                            <button
-                                onClick={() => {
-                                    setMode(mode === 'login' ? 'register' : 'login');
-                                    setError('');
-                                }}
-                                className="text-center text-slate-400 text-xs font-bold hover:text-white transition-colors"
-                            >
-                                {mode === 'login' ? "Don't have an Infinity ID? Register" : "Already have an account? Login"}
-                            </button>
+                                    {mode === 'login' ? (
+                                        <>Don't have an identity yet? <span className="text-indigo-600 group-hover:underline Decoration-2">Register Now</span></>
+                                    ) : (
+                                        <>Already a member? <span className="text-indigo-600 group-hover:underline decoration-2">Sign In</span></>
+                                    )}
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                </motion.div>
-            </div>
+                    </motion.div>
+                </div>
+            )}
         </AnimatePresence>
     );
 }
+
+

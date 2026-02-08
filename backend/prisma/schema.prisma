@@ -45,6 +45,8 @@ model User {
   badges                Badge[]
   reputation            Int                        @default(0)
   role                  String                     @default("user") // 'user', 'admin', 'moderator'
+  isVerified            Boolean                    @default(false)
+  verificationToken     String?
   
   createdAt             DateTime                   @default(now())
 }
