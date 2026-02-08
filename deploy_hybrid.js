@@ -67,11 +67,16 @@ RewriteRule ^_next/ - [L]
 RewriteCond %{REQUEST_FILENAME} -f
 RewriteRule ^ - [L]
 
-# 3. Handle Clean URLs for Pages (e.g., mrohaung.com/login)
+# 3. Handle Profile Routing Fallback (for dynamic profiles)
+RewriteCond %{REQUEST_URI} ^/profile/
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^profile/.*$ /profile/user.html [L]
+
+# 4. Handle Clean URLs for Pages (e.g., mrohaung.com/login)
 RewriteCond %{DOCUMENT_ROOT}/$1.html -f
 RewriteRule ^(.*)$ $1.html [L]
 
-# 4. SPA Fallback (Client-side routing)
+# 5. SPA Fallback (Client-side routing)
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule . /index.html [L]

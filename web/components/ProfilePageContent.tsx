@@ -91,9 +91,13 @@ export default function ProfilePageContent() {
         try {
             const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
             setCurrentUser(storedUser);
-            const profileSlug = (params.id as string) || storedUser.username;
+            const profileSlugFromParams = params.id as string;
+            // Handle 'user' placeholder for own profile in static exports
+            const profileSlug = (profileSlugFromParams === 'user' || !profileSlugFromParams || profileSlugFromParams === '[id]')
+                ? storedUser.username
+                : profileSlugFromParams;
 
-            if (!profileSlug || profileSlug === '[id]') {
+            if (!profileSlug) {
                 return;
             }
 
