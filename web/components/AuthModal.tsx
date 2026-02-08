@@ -2,8 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Mail, Lock, Sparkles, ArrowRight, ShieldCheck } from 'lucide-react';
-import Link from 'next/link';
+import { X, Mail, Lock, Sparkles, ArrowRight, Phone, Calendar, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/AuthContext';
 import api from '@/lib/api';
@@ -19,10 +18,12 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [displayName, setDisplayName] = useState('');
+    const [dob, setDob] = useState('');
+    const [gender, setGender] = useState('other');
+    const [phoneNumber, setPhoneNumber] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const { login } = useAuth();
-    const router = useRouter();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -36,9 +37,20 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                 login(token, user);
                 onClose();
             } else {
-                await api.post('/auth/register', { displayName, email, password });
+                await api.post('/auth/register', {
+                    displayName,
+                    email,
+                    password,
+                    dob,
+                    gender,
+                    phoneNumber
+                });
                 setMode('login');
                 setError('Registration successful! Please login.');
+                // Reset fields
+                setDisplayName('');
+                setDob('');
+                setPhoneNumber('');
             }
         } catch (err: any) {
             setError(err.response?.data?.message || 'Authentication failed');
@@ -50,7 +62,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
     if (!isOpen) return null;
 
     return (
-        <AnimatePresence>
+        <AnimatePresence mode="wait">
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                 <motion.div
                     initial={{ opacity: 0 }}
@@ -64,7 +76,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                     initial={{ scale: 0.9, opacity: 0, y: 20 }}
                     animate={{ scale: 1, opacity: 1, y: 0 }}
                     exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                    className="relative w-full max-w-md overflow-hidden"
+                    className="relative w-full max-w-lg overflow-hidden"
                 >
                     <div className="relative bg-slate-900 border border-white/10 rounded-[2.5rem] shadow-2xl p-8 md:p-10">
                         {/* Background Gradients */}
@@ -92,17 +104,66 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
 
                         <form onSubmit={handleSubmit} className="space-y-4">
                             {mode === 'register' && (
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Identity Name</label>
-                                    <input
-                                        type="text"
-                                        value={displayName}
-                                        onChange={(e) => setDisplayName(e.target.value)}
-                                        placeholder="Full Name"
-                                        className="w-full px-4 py-3 bg-slate-950/50 border border-white/5 rounded-xl text-white placeholder-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all text-sm font-medium"
-                                        required
-                                    />
-                                </div>
+                                <>
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Identity Name</label>
+                                        <div className="relative group">
+                                            <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-indigo-400 transition-colors" />
+                                            <input
+                                                type="text"
+                                                value={displayName}
+                                                onChange={(e) => setDisplayName(e.target.value)}
+                                                placeholder="Full Name"
+                                                className="w-full pl-11 pr-4 py-3 bg-slate-950/50 border border-white/5 rounded-xl text-white placeholder-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all text-sm font-medium"
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Date of Birth</label>
+                                            <div className="relative group">
+                                                <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-indigo-400 transition-colors" />
+                                                <input
+                                                    type="date"
+                                                    value={dob}
+                                                    onChange={(e) => setDob(e.target.value)}
+                                                    className="w-full pl-11 pr-4 py-3 bg-slate-950/50 border border-white/5 rounded-xl text-white placeholder-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all text-sm font-medium"
+                                                    required
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Gender</label>
+                                            <select
+                                                value={gender}
+                                                onChange={(e) => setGender(e.target.value)}
+                                                className="w-full px-4 py-3 bg-slate-950/50 border border-white/5 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all text-sm font-medium appearance-none"
+                                                required
+                                            >
+                                                <option value="male" className="bg-slate-900">Male</option>
+                                                <option value="female" className="bg-slate-900">Female</option>
+                                                <option value="other" className="bg-slate-900">Other</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Phone Number</label>
+                                        <div className="relative group">
+                                            <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-indigo-400 transition-colors" />
+                                            <input
+                                                type="tel"
+                                                value={phoneNumber}
+                                                onChange={(e) => setPhoneNumber(e.target.value)}
+                                                placeholder="+1 234 567 890"
+                                                className="w-full pl-11 pr-4 py-3 bg-slate-950/50 border border-white/5 rounded-xl text-white placeholder-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all text-sm font-medium"
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+                                </>
                             )}
 
                             <div className="space-y-1.5">
@@ -163,17 +224,14 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
 
                         <div className="mt-8 pt-6 border-t border-white/5 flex flex-col gap-4">
                             <button
-                                onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
+                                onClick={() => {
+                                    setMode(mode === 'login' ? 'register' : 'login');
+                                    setError('');
+                                }}
                                 className="text-center text-slate-400 text-xs font-bold hover:text-white transition-colors"
                             >
                                 {mode === 'login' ? "Don't have an Infinity ID? Register" : "Already have an account? Login"}
                             </button>
-
-                            {mode === 'login' && (
-                                <Link href="/login" onClick={onClose} className="text-center text-indigo-400 text-[10px] font-black uppercase tracking-[0.2em] hover:text-indigo-300 transition-colors">
-                                    Full Portal Access
-                                </Link>
-                            )}
                         </div>
                     </div>
                 </motion.div>
