@@ -72,7 +72,14 @@ RewriteCond %{REQUEST_URI} ^/profile/
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteRule ^profile/.*$ /profile/user.html [L]
 
-# 4. Handle Clean URLs for Pages (e.g., mrohaung.com/login)
+# 4. Handle Post Routing Fallback (/[username]/[postId])
+RewriteCond %{REQUEST_URI} ^/([^/]+)/([^/]+)$
+RewriteCond %{REQUEST_FILENAME} !-f
+# Ensure we don't catch static assets or reserved paths
+RewriteCond %{REQUEST_URI} !^/(_next|api|uploads|static)
+RewriteRule ^([^/]+)/([^/]+)$ /index.html [L]
+
+# 5. Handle Clean URLs for Pages (e.g., mrohaung.com/login)
 RewriteCond %{DOCUMENT_ROOT}/$1.html -f
 RewriteRule ^(.*)$ $1.html [L]
 

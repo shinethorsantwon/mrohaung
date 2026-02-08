@@ -325,6 +325,34 @@ export default function PostModal({ isOpen, onClose, post, onUpdate, onDelete, c
 
     const isOwnPost = currentUserId === post.author.id;
 
+    // Track original URL for restoring
+    const originalUrlRef = useRef<string | null>(null);
+
+    useEffect(() => {
+        if (isOpen && post && post.author && post.id) {
+            const newUrl = `/${post.author.username}/${post.id}`;
+            // Avoid double pushing if already on that URL
+            if (window.location.pathname !== newUrl) {
+                originalUrlRef.current = window.location.pathname + window.location.search;
+                window.history.pushState({ postModal: true }, '', newUrl);
+            }
+
+            const handlePopState = () => {
+                if (isOpen) {
+                    onClose();
+                }
+            };
+            window.addEventListener('popstate', handlePopState);
+            return () => {
+                window.removeEventListener('popstate', handlePopState);
+                // Restore URL if we were the ones who pushed it
+                if (originalUrlRef.current && window.location.pathname === newUrl) {
+                    window.history.pushState(null, '', originalUrlRef.current);
+                }
+            };
+        }
+    }, [isOpen, post, onClose]);
+
     useEffect(() => {
         if (!isOpen) return;
         const handleKeyDown = (e: KeyboardEvent) => {

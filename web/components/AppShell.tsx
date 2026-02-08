@@ -11,6 +11,7 @@ import MessageDropdown from '@/components/MessageDropdown';
 import api from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
 import { fixUrl } from '@/lib/utils';
+import PostModal from '@/components/PostModal';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
@@ -26,6 +27,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     const [inputMessage, setInputMessage] = useState('');
     const [conversationId, setConversationId] = useState<string | null>(null);
     const [isInitialized, setIsInitialized] = useState(false);
+    const [deepLinkPost, setDeepLinkPost] = useState<any>(null);
+    const [showDeepLinkModal, setShowDeepLinkModal] = useState(false);
 
     useEffect(() => {
         if (currentUser) {
@@ -51,6 +54,37 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         }
         setIsInitialized(true);
     }, [currentUser]);
+
+    useEffect(() => {
+        const checkDeepLink = async () => {
+            const pathParts = pathname?.split('/').filter(Boolean) || [];
+            const reserved = ['login', 'register', 'admin', 'friends', 'messages', 'settings', 'terms', 'privacy', 'profile', 'api', '_next'];
+
+            // Pattern: /username/postId
+            if (pathParts.length === 2 && !reserved.includes(pathParts[0])) {
+                const [username, postId] = pathParts;
+                // Avoid re-fetching if already showing
+                if (deepLinkPost?.id === postId) return;
+
+                try {
+                    const response = await api.get(`/posts/${postId}`);
+                    if (response.data.author.username === username) {
+                        setDeepLinkPost(response.data);
+                        setShowDeepLinkModal(true);
+                    }
+                } catch (error) {
+                    console.error('Deep link post fetch failed:', error);
+                }
+            } else if (pathParts.length === 0 || reserved.includes(pathParts[0])) {
+                // If we navigate away from a deep link, close the modal
+                if (showDeepLinkModal) {
+                    setShowDeepLinkModal(false);
+                }
+            }
+        };
+
+        checkDeepLink();
+    }, [pathname, deepLinkPost?.id, showDeepLinkModal]);
 
     const navItems = useMemo(
         () => {
@@ -364,6 +398,19 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
                 <div className="flex-1 min-w-0">{children}</div>
             </div>
+
+            {/* Global Deep-link Post Modal */}
+            {deepLinkPost && (
+                <PostModal
+                    isOpen={showDeepLinkModal}
+                    onClose={() => {
+                        setShowDeepLinkModal(false);
+                        // DeepLinkPost remains for cache if we go back
+                    }}
+                    post={deepLinkPost}
+                    currentUserId={currentUser?.id}
+                />
+            )}
         </div>
     );
 }

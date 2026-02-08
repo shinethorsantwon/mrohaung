@@ -535,3 +535,70 @@ exports.getComments = async (req, res) => {
         res.status(500).json({ message: 'Error fetching comments' });
     }
 };
+
+exports.getPostById = async (req, res) => {
+    try {
+        const { postId } = req.params;
+        const currentUserId = req.userId;
+
+        const query = `
+            SELECT p.*, u.username, u.avatarUrl, u.displayName, u.isPrivate,
+            (SELECT COUNT(*) FROM \`Like\` WHERE postId = p.id) as likeCount,
+            (SELECT COUNT(*) FROM Comment WHERE postId = p.id) as commentCount
+            FROM Post p 
+            JOIN User u ON p.authorId = u.id 
+            WHERE p.id = ?
+            AND (
+                p.privacy = 'public'
+                OR p.authorId = ?
+                OR (p.privacy = 'friends' AND EXISTS (
+                    SELECT 1 FROM Friendship 
+                    WHERE ((userId = ? AND friendId = p.authorId) OR (userId = p.authorId AND friendId = ?))
+                    AND status = 'accepted'
+                ))
+            )
+            AND NOT EXISTS (
+                SELECT 1 FROM BlockedUser 
+                WHERE (blockerId = ? AND blockedId = p.authorId)
+                OR (blockerId = p.authorId AND blockedId = ?)
+            )
+        `;
+
+        const [posts] = await pool.execute(query, [
+            postId,
+            currentUserId || null,
+            currentUserId || null, currentUserId || null,
+            currentUserId || null, currentUserId || null
+        ]);
+
+        if (posts.length === 0) {
+            return res.status(404).json({ message: 'Post not found or authorized' });
+        }
+
+        const post = posts[0];
+        const formatted = {
+            ...post,
+            author: {
+                id: post.authorId,
+                username: post.username,
+                displayName: post.displayName,
+                avatarUrl: post.avatarUrl
+            },
+            _count: {
+                likes: parseInt(post.likeCount || 0),
+                comments: parseInt(post.commentCount || 0)
+            }
+        };
+        delete formatted.username;
+        delete formatted.displayName;
+        delete formatted.avatarUrl;
+        delete formatted.likeCount;
+        delete formatted.commentCount;
+        delete formatted.isPrivate;
+
+        res.json(formatted);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error fetching post' });
+    }
+};
