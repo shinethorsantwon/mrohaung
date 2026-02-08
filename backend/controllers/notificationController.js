@@ -8,7 +8,7 @@ const getNotifications = async (req, res) => {
         const limit = parseInt(req.query.limit) || 20;
         const offset = (page - 1) * limit;
 
-        const queryWithDN = `SELECT n.id, n.type, n.message, n.read, n.createdAt, n.postId,
+        const query = `SELECT n.id, n.type, n.message, n.read, n.createdAt, n.postId,
                     u.id as fromUserId, u.username as fromUsername, u.displayName as fromDisplayName, u.avatarUrl as fromAvatarUrl,
                     p.id as postIdRef, p.content as postContent
              FROM Notification n
@@ -18,22 +18,7 @@ const getNotifications = async (req, res) => {
              ORDER BY n.createdAt DESC
              LIMIT ? OFFSET ?`;
 
-        const queryWithoutDN = `SELECT n.id, n.type, n.message, n.read, n.createdAt, n.postId,
-                    u.id as fromUserId, u.username as fromUsername, u.avatarUrl as fromAvatarUrl,
-                    p.id as postIdRef, p.content as postContent
-             FROM Notification n
-             JOIN User u ON n.fromUserId = u.id
-             LEFT JOIN Post p ON n.postId = p.id
-             WHERE n.userId = ?
-             ORDER BY n.createdAt DESC
-             LIMIT ? OFFSET ?`;
-
-        let notifications;
-        try {
-            [notifications] = await pool.execute(queryWithDN, [userId, limit, offset]);
-        } catch (e) {
-            [notifications] = await pool.execute(queryWithoutDN, [userId, limit, offset]);
-        }
+        const [notifications] = await pool.query(query, [userId, limit, offset]);
 
         const formattedNotifications = notifications.map(n => ({
             id: n.id,

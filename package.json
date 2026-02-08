@@ -7,12 +7,16 @@
         "web"
     ],
     "scripts": {
-        "build": "cd web && npm install && npm run build && cd .. && rm -rf .next && cp -r web/.next .",
+        "build": "cd web && npm install && npm run build",
         "start": "cd web && npm start",
-        "dev": "npx concurrently \"cd web && npm run dev\" \"cd backend && npm run dev\""
+        "dev": "npx concurrently \"cd web && npx next dev -H 0.0.0.0\" \"cd backend && npm run dev\"",
+        "deploy": "npm run build && node deploy.js",
+        "deploy:ssh": "node deploy-ssh.js"
     },
     "dependencies": {
+        "basic-ftp": "^5.1.0",
         "express": "^5.2.1",
+        "fs-extra": "^11.3.3",
         "next": "16.1.6",
         "react": "19.2.3",
         "react-dom": "19.2.3"
@@ -21,6 +25,8 @@
         "node": ">=18.0.0"
     },
     "devDependencies": {
-        "concurrently": "^9.2.1"
+        "concurrently": "^9.2.1",
+        "dotenv": "^17.2.4",
+        "ftp-deploy": "^2.4.7"
     }
 }

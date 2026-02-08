@@ -4,50 +4,19 @@ const { uploadFile } = require('../utils/minio');
 exports.getProfile = async (req, res) => {
     try {
         const identifier = req.params.id;
-        let users;
-        try {
-            // Attempt 1: Full features
-            [users] = await pool.execute(
-                `SELECT u.id, u.username, u.displayName, u.bio, u.avatarUrl, u.coverUrl, u.coverOffset, u.createdAt,
-                (SELECT COUNT(*) FROM Post WHERE authorId = u.id) as postCount,
-                (SELECT COUNT(*) FROM Friendship WHERE (userId = u.id OR friendId = u.id) AND status = 'ACCEPTED') as friendCount
-                FROM User u WHERE u.id = ? OR u.username = ?
-                LIMIT 1`,
-                [identifier, identifier]
-            );
-        } catch (e) {
-            try {
-                // Attempt 2: Without cover columns but with displayName
-                [users] = await pool.execute(
-                    `SELECT u.id, u.username, u.displayName, u.bio, u.avatarUrl, u.createdAt,
-                    (SELECT COUNT(*) FROM Post WHERE authorId = u.id) as postCount,
-                    (SELECT COUNT(*) FROM Friendship WHERE (userId = u.id OR friendId = u.id) AND status = 'ACCEPTED') as friendCount
-                    FROM User u WHERE u.id = ? OR u.username = ?
-                    LIMIT 1`,
-                    [identifier, identifier]
-                );
-            } catch (e2) {
-                // Attempt 3: Without cover columns AND without displayName
-                [users] = await pool.execute(
-                    `SELECT u.id, u.username, u.bio, u.avatarUrl, u.createdAt,
-                    (SELECT COUNT(*) FROM Post WHERE authorId = u.id) as postCount,
-                    (SELECT COUNT(*) FROM Friendship WHERE (userId = u.id OR friendId = u.id) AND status = 'ACCEPTED') as friendCount
-                    FROM User u WHERE u.id = ? OR u.username = ?
-                    LIMIT 1`,
-                    [identifier, identifier]
-                );
-            }
-            if (users.length > 0) {
-                users[0].coverUrl = null;
-                users[0].coverOffset = 50;
-                if (users[0].displayName === undefined) users[0].displayName = users[0].username;
-            }
-        }
+        const [users] = await pool.query(
+            `SELECT u.id, u.username, u.displayName, u.bio, u.avatarUrl, u.coverUrl, u.coverOffset, u.createdAt, u.reputation,
+            (SELECT COUNT(*) FROM Post WHERE authorId = u.id) as postCount,
+            (SELECT COUNT(*) FROM Friendship WHERE (userId = u.id OR friendId = u.id) AND status = 'accepted') as friendCount
+            FROM User u WHERE u.id = ? OR u.username = ?
+            LIMIT 1`,
+            [identifier, identifier]
+        );
 
         if (users.length === 0) return res.status(404).json({ message: 'User not found' });
 
         const user = users[0];
-        // Normalize counts to numbers if they are returned as strings/bigint
+        // Normalize counts to numbers
         user._count = {
             posts: parseInt(user.postCount || 0),
             friends: parseInt(user.friendCount || 0)
@@ -57,14 +26,14 @@ exports.getProfile = async (req, res) => {
 
         res.json(user);
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server error' });
+        console.error('Error in getProfile:', error);
+        res.status(500).json({ message: 'Server error', details: error.message });
     }
 };
 
 exports.updateProfile = async (req, res) => {
     try {
-        const { bio, coverOffset } = req.body;
+        const { bio, coverOffset, displayName } = req.body;
         let avatarUrl = undefined;
         let coverUrl = undefined;
 
@@ -82,37 +51,30 @@ exports.updateProfile = async (req, res) => {
         let query = 'UPDATE User SET bio = ?';
         const params = [bio];
 
+        if (displayName) {
+            query += ', displayName = ?';
+            params.push(displayName);
+        }
+
         if (avatarUrl) {
             query += ', avatarUrl = ?';
             params.push(avatarUrl);
         }
 
-        const updateParams = [...params];
-        let updateQuery = query;
         if (coverUrl) {
-            updateQuery += ', coverUrl = ?';
-            updateParams.push(coverUrl);
+            query += ', coverUrl = ?';
+            params.push(coverUrl);
         }
+
         if (coverOffset !== undefined) {
-            updateQuery += ', coverOffset = ?';
-            updateParams.push(parseInt(coverOffset));
+            query += ', coverOffset = ?';
+            params.push(parseInt(coverOffset));
         }
 
-        updateQuery += ' WHERE id = ?';
-        updateParams.push(req.userId);
+        query += ' WHERE id = ?';
+        params.push(req.userId);
 
-        try {
-            await pool.execute(updateQuery, updateParams);
-        } catch (e) {
-            // Fallback: if adding cover photo fails (likely column missing), try updating without it
-            if (coverUrl || coverOffset !== undefined) {
-                const retryQuery = query + ' WHERE id = ?';
-                const retryParams = [...params, req.userId];
-                await pool.execute(retryQuery, retryParams);
-            } else {
-                throw e; // Rethrow if it wasn't a coverUrl/coverOffset issue
-            }
-        }
+        await pool.execute(query, params);
 
         // Fetch updated user to return
         const [updatedUsers] = await pool.execute('SELECT * FROM User WHERE id = ?', [req.userId]);
@@ -132,7 +94,7 @@ exports.searchUsers = async (req, res) => {
         }
 
         const searchTerm = `%${q}%`;
-        const [users] = await pool.execute(
+        const [users] = await pool.query(
             `SELECT id, username, email, avatarUrl 
              FROM User 
              WHERE username LIKE ? OR email LIKE ?

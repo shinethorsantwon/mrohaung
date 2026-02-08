@@ -6,6 +6,7 @@ import MessageBubble from './MessageBubble';
 import dynamic from 'next/dynamic';
 
 const EmojiPicker = dynamic(() => import('emoji-picker-react'), { ssr: false });
+import { API_URL } from '@/lib/config';
 
 interface ChatWindowProps {
     recipient: User;
@@ -46,7 +47,7 @@ export default function ChatWindow({
 
     const fetchSharedMedia = async () => {
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/messages/conversations/${messages[0]?.conversationId}/media`, {
+            const response = await fetch(`${API_URL}/messages/conversations/${messages[0]?.conversationId}/media`, {
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
             });
             const data = await response.json();

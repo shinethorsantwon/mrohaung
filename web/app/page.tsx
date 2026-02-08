@@ -9,11 +9,12 @@ import FriendSuggestions from '@/components/FriendSuggestions';
 import SearchBar from '@/components/SearchBar';
 import AppShell from '@/components/AppShell';
 import api from '@/lib/api';
+import { useAuth } from '@/lib/AuthContext';
 
 export default function FeedPage() {
+  const { user: currentUser } = useAuth();
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentUser, setCurrentUser] = useState<any>(null);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -21,10 +22,6 @@ export default function FeedPage() {
   const [showPostModal, setShowPostModal] = useState(false);
 
   useEffect(() => {
-    // Get current user from localStorage
-    const user = JSON.parse(localStorage.getItem('user') || 'null');
-    setCurrentUser(user);
-
     const fetchPosts = async () => {
       try {
         const response = await api.get('/posts/feed?page=1&limit=10');
@@ -120,9 +117,12 @@ export default function FeedPage() {
                   key={post.id}
                   post={post}
                   isGuest={!currentUser}
-                  onDelete={async () => {
-                    const response = await api.get('/posts/feed?page=1&limit=10&_=' + Date.now());
-                    setPosts(response.data);
+                  onDelete={(postId) => {
+                    if (postId) {
+                      setPosts(prev => prev.filter(p => p.id !== postId));
+                    } else {
+                      api.get('/posts/feed?page=1&limit=10&_=' + Date.now()).then(res => setPosts(res.data));
+                    }
                   }}
                   onUpdate={async () => {
                     const response = await api.get('/posts/feed?page=1&limit=10&_=' + Date.now());

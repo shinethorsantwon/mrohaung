@@ -65,18 +65,10 @@ exports.register = async (req, res) => {
         const userId = uuidv4();
 
         // Create user
-        try {
-            await pool.execute(
-                'INSERT INTO User (id, username, email, password, displayName) VALUES (?, ?, ?, ?, ?)',
-                [userId, username, email, hashedPassword, displayName || username]
-            );
-        } catch (e) {
-            // Backward compatible: if displayName column does not exist
-            await pool.execute(
-                'INSERT INTO User (id, username, email, password) VALUES (?, ?, ?, ?)',
-                [userId, username, email, hashedPassword]
-            );
-        }
+        await pool.execute(
+            'INSERT INTO User (id, username, email, password, displayName) VALUES (?, ?, ?, ?, ?)',
+            [userId, username, email, hashedPassword, displayName || username]
+        );
 
         res.status(201).json({ message: 'User registered successfully', userId, username });
     } catch (error) {
@@ -117,6 +109,7 @@ exports.login = async (req, res) => {
                 id: user.id,
                 username: user.username,
                 email: user.email,
+                displayName: user.displayName,
                 avatarUrl: user.avatarUrl
             }
         });
@@ -128,19 +121,10 @@ exports.login = async (req, res) => {
 
 exports.me = async (req, res) => {
     try {
-        let users;
-        try {
-            [users] = await pool.execute(
-                'SELECT id, username, email, displayName, avatarUrl FROM User WHERE id = ?',
-                [req.userId]
-            );
-        } catch (e) {
-            // Fallback if displayName column does not exist
-            [users] = await pool.execute(
-                'SELECT id, username, email, avatarUrl FROM User WHERE id = ?',
-                [req.userId]
-            );
-        }
+        const [users] = await pool.execute(
+            'SELECT id, username, email, displayName, avatarUrl FROM User WHERE id = ?',
+            [req.userId]
+        );
 
         const user = users[0];
 

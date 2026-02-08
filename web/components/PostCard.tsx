@@ -12,7 +12,7 @@ import { useSocket } from '@/lib/socket';
 interface PostCardProps {
     post: any;
     isGuest?: boolean;
-    onDelete?: () => void;
+    onDelete?: (id?: string) => void;
     onUpdate?: () => void;
     onEdit?: (post: any) => void;
     onViewComments?: (post: any) => void;
@@ -157,7 +157,7 @@ export default function PostCard({ post, isGuest = false, onDelete, onUpdate, on
         setIsDeleting(true);
         try {
             await api.delete(`/posts/${post.id}`);
-            if (onDelete) onDelete();
+            if (onDelete) onDelete(post.id);
         } catch (error) {
             console.error('Failed to delete post:', error);
             alert('Failed to delete post');

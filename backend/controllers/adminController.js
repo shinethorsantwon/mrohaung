@@ -43,7 +43,7 @@ exports.listUsers = async (req, res) => {
 
         if (q) {
             const like = `%${q}%`;
-            const [rows] = await pool.execute(
+            const [rows] = await pool.query(
                 'SELECT id, username, email, avatarUrl, createdAt FROM User WHERE username LIKE ? OR email LIKE ? ORDER BY createdAt DESC LIMIT ? OFFSET ?',
                 [like, like, limit, offset]
             );
@@ -55,7 +55,7 @@ exports.listUsers = async (req, res) => {
             );
             total = parseInt(countRow.count || 0);
         } else {
-            const [rows] = await pool.execute(
+            const [rows] = await pool.query(
                 'SELECT id, username, email, avatarUrl, createdAt FROM User ORDER BY createdAt DESC LIMIT ? OFFSET ?',
                 [limit, offset]
             );
@@ -96,7 +96,7 @@ exports.listPosts = async (req, res) => {
     try {
         const { limit, offset, page } = parsePagination(req);
 
-        const [posts] = await pool.execute(
+        const [posts] = await pool.query(
             `SELECT p.id, p.content, p.imageUrl, p.privacy, p.authorId, p.createdAt, u.username as authorUsername
              FROM Post p
              JOIN User u ON p.authorId = u.id
@@ -138,7 +138,7 @@ exports.listStories = async (req, res) => {
     try {
         const { limit, offset, page } = parsePagination(req);
 
-        const [stories] = await pool.execute(
+        const [stories] = await pool.query(
             `SELECT s.id, s.userId, s.imageUrl, s.caption, s.expiresAt, s.createdAt, u.username
              FROM Story s
              JOIN User u ON s.userId = u.id
@@ -179,7 +179,7 @@ exports.listComments = async (req, res) => {
     try {
         const { limit, offset, page } = parsePagination(req);
 
-        const [comments] = await pool.execute(
+        const [comments] = await pool.query(
             `SELECT c.id, c.content, c.postId, c.userId, c.createdAt, u.username
              FROM Comment c
              JOIN User u ON c.userId = u.id
@@ -218,7 +218,7 @@ exports.listMessages = async (req, res) => {
     try {
         const { limit, offset, page } = parsePagination(req);
 
-        const [messages] = await pool.execute(
+        const [messages] = await pool.query(
             `SELECT m.id, m.content, m.imageUrl, m.senderId, m.conversationId, m.createdAt, m.read, u.username as senderUsername
              FROM Message m
              JOIN User u ON m.senderId = u.id
@@ -264,7 +264,7 @@ exports.listNotifications = async (req, res) => {
         const { limit, offset, page } = parsePagination(req);
 
         // Fetch notifications with usernames for to/from users
-        const [notifications] = await pool.execute(
+        const [notifications] = await pool.query(
             `SELECT n.id, n.type, n.userId as toUserId, u1.username as toUsername, 
                     n.fromUserId, u2.username as fromUsername, n.read, n.message, n.createdAt
              FROM Notification n

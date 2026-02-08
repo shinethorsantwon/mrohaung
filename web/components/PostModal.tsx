@@ -15,7 +15,7 @@ interface PostModalProps {
     onClose: () => void;
     post: any;
     onUpdate?: () => void;
-    onDelete?: () => void;
+    onDelete?: (id?: string) => void;
     currentUserId?: string;
 }
 
@@ -516,7 +516,7 @@ export default function PostModal({ isOpen, onClose, post, onUpdate, onDelete, c
         if (!confirm('Are you sure you want to delete this post?')) return;
         try {
             await api.delete(`/posts/${post.id}`);
-            if (onDelete) onDelete();
+            if (onDelete) onDelete(post.id);
             onClose();
         } catch (error) {
             console.error('Failed to delete post:', error);

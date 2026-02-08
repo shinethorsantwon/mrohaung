@@ -6,11 +6,11 @@ const multer = require('multer');
 
 const upload = multer({ storage: multer.memoryStorage() });
 
-router.post('/', authMiddleware, upload.single('image'), postController.createPost);
 const optionalAuthMiddleware = require('../middleware/optionalAuthMiddleware');
 
 router.post('/', authMiddleware, upload.single('image'), postController.createPost);
 router.get('/feed', optionalAuthMiddleware, postController.getFeed);
+router.get('/user/:id', optionalAuthMiddleware, postController.getPostsByUser);
 router.post('/:postId/like', authMiddleware, postController.likePost);
 router.post('/:postId/comment', authMiddleware, upload.single('audio'), postController.addComment);
 router.get('/:postId/comments', authMiddleware, postController.getComments);

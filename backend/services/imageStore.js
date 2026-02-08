@@ -1,47 +1,35 @@
-const Database = require('better-sqlite3');
-const path = require('path');
-const fs = require('fs');
-
-// Storage folder မရှိရင် ဆောက်မယ်
-const storageDir = path.join(__dirname, '../storage');
-if (!fs.existsSync(storageDir)) {
-    fs.mkdirSync(storageDir);
-}
-
-// Database ဖိုင် တည်နေရာ (storage/images.db)
-const dbPath = path.join(storageDir, 'images.db');
-const db = new Database(dbPath);
-
-// Table ဆောက်မယ် (မရှိသေးရင်)
-db.exec(`
-  CREATE TABLE IF NOT EXISTS images (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    filename TEXT UNIQUE,
-    data BLOB,
-    mime_type TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  )
-`);
-
-// Performance ကောင်းအောင် WAL mode ဖွင့်မယ်
-db.pragma('journal_mode = WAL');
+const imageDb = require('../utils/imageDb');
 
 module.exports = {
-    // ပုံသိမ်းမယ့် Function
+    // Save image to SQLite
     saveImage: (filename, buffer, mimeType) => {
-        const stmt = db.prepare('INSERT OR REPLACE INTO images (filename, data, mime_type) VALUES (?, ?, ?)');
-        return stmt.run(filename, buffer, mimeType);
+        try {
+            imageDb.saveImage(filename, buffer, mimeType);
+            return { changes: 1 };
+        } catch (error) {
+            console.error('Failed to save image to SQLite:', error);
+            throw error;
+        }
     },
 
-    // ပုံပြန်ထုတ်မယ့် Function
+    // Get image from SQLite
     getImage: (filename) => {
-        const stmt = db.prepare('SELECT data, mime_type FROM images WHERE filename = ?');
-        return stmt.get(filename);
+        const row = imageDb.getImage(filename);
+        if (!row) return null;
+        return {
+            data: row.data,
+            mime_type: row.mimeType
+        };
     },
 
-    // ပုံဖျက်မယ့် Function
+    // Delete image from SQLite
     deleteImage: (filename) => {
-        const stmt = db.prepare('DELETE FROM images WHERE filename = ?');
-        return stmt.run(filename);
+        try {
+            imageDb.deleteImage(filename);
+            return { changes: 1 };
+        } catch (error) {
+            console.error('Failed to delete image from SQLite:', error);
+            return { changes: 0 };
+        }
     }
 };

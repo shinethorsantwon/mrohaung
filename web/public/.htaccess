@@ -1,0 +1,26 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # 1. Skip rewrite for actual files and directories
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # 2. Specifically allow _next folder static assets to be served directly
+  RewriteRule ^_next/(.*)$ _next/$1 [L]
+
+  # 3. Handle trailing slashes (Next.js trailingSlash: true compatibility)
+  # If /about/ exists as /about/index.html, serve it
+  RewriteCond %{DOCUMENT_ROOT}/$1/index.html -f
+  RewriteRule ^(.*)/$ $1/index.html [L]
+
+  # 4. Map extension-less URLs to .html files
+  # /login -> /login.html
+  RewriteCond %{DOCUMENT_ROOT}/$1.html -f
+  RewriteRule ^(.*)$ $1.html [L]
+
+  # 5. Fallback for Client-Side Routing (SPA mode)
+  # If nothing matches, serve index.html
+  RewriteRule ^ index.html [L]
+</IfModule>

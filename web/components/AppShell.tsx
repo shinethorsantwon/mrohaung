@@ -9,12 +9,13 @@ import NotificationDropdown from '@/components/NotificationDropdown';
 import ThemeToggle from '@/components/ThemeToggle';
 import MessageDropdown from '@/components/MessageDropdown';
 import api from '@/lib/api';
+import { useAuth } from '@/lib/AuthContext';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const router = useRouter();
 
-    const [currentUser, setCurrentUser] = useState<any>(null);
+    const { user: currentUser, logout, updateUser } = useAuth();
     const [showUserMenu, setShowUserMenu] = useState(false);
     const [isAdmin, setIsAdmin] = useState(false);
     const [showMessages, setShowMessages] = useState(false);
@@ -26,53 +27,29 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     const [isInitialized, setIsInitialized] = useState(false);
 
     useEffect(() => {
-        const syncUser = async () => {
-            const user = JSON.parse(localStorage.getItem('user') || 'null');
-            setCurrentUser(user);
-
-            if (user && (user.id || user.username)) {
-                // Fetch latest user data to sync localStorage
+        if (currentUser) {
+            // Fetch recent conversations for dropdown
+            const fetchRecentConversations = async () => {
                 try {
-                    const profileRes = await api.get(`/profile/${user.id || user.username}`);
-                    const latestUser = profileRes.data;
-                    localStorage.setItem('user', JSON.stringify({ ...user, ...latestUser }));
-                    setCurrentUser({ ...user, ...latestUser });
-                } catch (err) {
-                    console.error('Failed to sync user data:', err);
+                    const response = await api.get('/messages/conversations?limit=5');
+                    setRecentConversations(response.data || []);
+                } catch (error) {
+                    console.error('Failed to fetch recent conversations:', error);
                 }
+            };
+            fetchRecentConversations();
 
-                // Fetch recent conversations for dropdown
-                const fetchRecentConversations = async () => {
-                    try {
-                        const response = await api.get('/messages/conversations?limit=5');
-                        setRecentConversations(response.data || []);
-                    } catch (error) {
-                        console.error('Failed to fetch recent conversations:', error);
-                    }
-                };
-                fetchRecentConversations();
-
-                (async () => {
-                    try {
-                        await api.get('/admin/overview');
-                        setIsAdmin(true);
-                    } catch {
-                        setIsAdmin(false);
-                    }
-                })();
-            }
-        };
-
-        const handleUpdate = () => {
-            const updated = JSON.parse(localStorage.getItem('user') || 'null');
-            setCurrentUser(updated);
-        };
-
-        syncUser().finally(() => setIsInitialized(true));
-        window.addEventListener('userUpdated', handleUpdate);
-
-        return () => window.removeEventListener('userUpdated', handleUpdate);
-    }, []);
+            (async () => {
+                try {
+                    await api.get('/admin/overview');
+                    setIsAdmin(true);
+                } catch {
+                    setIsAdmin(false);
+                }
+            })();
+        }
+        setIsInitialized(true);
+    }, [currentUser]);
 
     const navItems = useMemo(
         () => {
@@ -101,9 +78,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     );
 
     const handleLogout = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        router.push('/login');
+        logout();
     };
 
     const isActive = (href: string) => {

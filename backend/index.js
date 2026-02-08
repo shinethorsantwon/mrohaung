@@ -43,21 +43,38 @@ const io = new Server(server, {
 
 
 
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://social.shinebuchay.com',
+  'https://mrohaung.com',
+  'https://www.mrohaung.com',
+  'https://api.mrohaung.com'
+];
+
 const corsOptions = {
-
-  origin: ['http://localhost:3000', 'https://social.shinebuchay.com', /^http:\/\/192\.168\.\d+\.\d+(:3000)?$/, /^http:\/\/10\.\d+\.\d+\.\d+(:3000)?$/, /^http:\/\/10\.69\.31\.\d+(:3000)?$/],
-
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
-
-  optionsSuccessStatus: 200
-
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  exposedHeaders: ['Set-Cookie']
 };
-
-
 
 app.use(cors(corsOptions));
 
 app.use(express.json());
+
+// Health Check Route for Docker
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
 
 
 
@@ -165,11 +182,9 @@ io.on('connection', (socket) => {
       console.log(`User ${socket.userId} joined their room`);
 
     } catch (error) {
-
-      console.error('Socket authentication failed:', error);
-
+      console.error('Socket authentication failed:', error.message);
+      // Don't throw, just let the user be unauthenticated
     }
-
   }
 
 

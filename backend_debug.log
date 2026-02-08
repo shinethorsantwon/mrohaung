@@ -1,0 +1,105 @@
+﻿social_media_backend  | [dotenv@17.2.4] injecting env (0) from .env -- tip: ≡ƒöä add secrets lifecycle management: https://dotenvx.com/ops
+social_media_backend  | SQLite Image Storage Service Initialized
+social_media_backend  | Server is running on port 5000
+social_media_backend  | A user connected: GsM3-67P87zKtQKbAAAX
+social_media_backend  | Socket authentication failed: invalid signature
+social_media_backend  | A user connected: J3yGYFWidiUDt2xVAAAY
+social_media_backend  | Socket authentication failed: invalid signature
+social_media_backend  | A user connected: MwmTpm5031I0PpftAAAZ
+social_media_backend  | Socket authentication failed: invalid signature
+social_media_backend  | A user connected: KMfjktskf0s8ZQbEAAAa
+social_media_backend  | Socket authentication failed: invalid signature
+social_media_backend  | A user connected: _yLZm7DOBtuhPOcoAAAb
+social_media_backend  | Socket authentication failed: invalid signature
+social_media_backend  | A user connected: pv4sNfCapO3Z7eUDAAAc
+social_media_backend  | Socket authentication failed: invalid signature
+social_media_backend  | A user connected: yoMgr55EdvZxN84iAAAd
+social_media_backend  | Socket authentication failed: invalid signature
+social_media_backend  | A user connected: 9IITGSLGNMfiJFElAAAe
+social_media_backend  | Socket authentication failed: invalid signature
+social_media_backend  | A user connected: 0Gt-GurN1nAfUCrcAAAf
+social_media_backend  | Socket authentication failed: invalid signature
+social_media_backend  | A user connected: GF71s8LjUO92jFt0AAAg
+social_media_backend  | Socket authentication failed: invalid signature
+social_media_backend  | A user connected: vp_Ok5kFLCc1QmGdAAAh
+social_media_backend  | Socket authentication failed: invalid signature
+social_media_backend  | A user connected: _YFcMOqv7x0jdZqKAAAi
+social_media_backend  | Socket authentication failed: invalid signature
+social_media_backend  | A user connected: WYop0VO7ssUSkE2HAAAj
+social_media_backend  | Socket authentication failed: invalid signature
+social_media_backend  | A user connected: nA8NXXL5Vxx-G1h8AAAk
+social_media_backend  | Socket authentication failed: invalid signature
+social_media_backend  | A user connected: hUHzDcj493u0mdhFAAAl
+social_media_backend  | Socket authentication failed: invalid signature
+social_media_backend  | A user connected: 54a6SoRHaYPcLHLnAAAm
+social_media_backend  | Socket authentication failed: invalid signature
+social_media_backend  | A user connected: 14dYWiwXdjsOVnRfAAAn
+social_media_backend  | Socket authentication failed: invalid signature
+social_media_backend  | A user connected: hib2kOvM5Rwpx3NtAAAo
+social_media_backend  | Socket authentication failed: invalid signature
+social_media_backend  | A user connected: oRBGcc9PqJRhZ59eAAAp
+social_media_backend  | Socket authentication failed: invalid signature
+social_media_backend  | A user connected: 2luLTegBYK_R-TugAAAq
+social_media_backend  | Socket authentication failed: invalid signature
+social_media_backend  | A user connected: Rrsmv50tGuwPltwBAAAr
+social_media_backend  | Socket authentication failed: invalid signature
+social_media_backend  | A user connected: wv3XvY1D83jVg0guAAAs
+social_media_backend  | Socket authentication failed: invalid signature
+social_media_backend  | A user connected: 3yyzq2V9tyVB7WKHAAAt
+social_media_backend  | Socket authentication failed: invalid signature
+social_media_backend  | A user connected: FysJTGRvcD14twATAAAv
+social_media_backend  | Socket authentication failed: invalid signature
+social_media_backend  | Error in getFeed: Error: Incorrect arguments to mysqld_stmt_execute
+social_media_backend  |     at PromisePool.execute (/app/node_modules/mysql2/lib/promise/pool.js:54:22)
+social_media_backend  |     at exports.getFeed (/app/controllers/postController.js:68:40)
+social_media_backend  |     at Layer.handleRequest (/app/node_modules/router/lib/layer.js:152:17)
+social_media_backend  |     at next (/app/node_modules/router/lib/route.js:157:13)
+social_media_backend  |     at module.exports (/app/middleware/optionalAuthMiddleware.js:8:16)
+social_media_backend  |     at Layer.handleRequest (/app/node_modules/router/lib/layer.js:152:17)
+social_media_backend  |     at next (/app/node_modules/router/lib/route.js:157:13)
+social_media_backend  |     at Route.dispatch (/app/node_modules/router/lib/route.js:117:3)
+social_media_backend  |     at handle (/app/node_modules/router/index.js:435:11)
+social_media_backend  |     at Layer.handleRequest (/app/node_modules/router/lib/layer.js:152:17) {
+social_media_backend  |   code: 'ER_WRONG_ARGUMENTS',
+social_media_backend  |   errno: 1210,
+social_media_backend  |   sql: '\n' +
+social_media_backend  |     '                SELECT p.*, u.username, u.avatarUrl, u.displayName, u.isPrivate,\n' +
+social_media_backend  |     '                (SELECT COUNT(*) FROM `Like` WHERE postId = p.id) as likeCount,\n' +
+social_media_backend  |     '                (SELECT COUNT(*) FROM Comment WHERE postId = p.id) as commentCount,\n' +
+social_media_backend  |     "                'suggested' as feedType\n" +
+social_media_backend  |     '                FROM Post p \n' +
+social_media_backend  |     '                JOIN User u ON p.authorId = u.id \n' +
+social_media_backend  |     "                WHERE p.privacy = 'public'\n" +
+social_media_backend  |     '                ORDER BY p.createdAt DESC\n' +
+social_media_backend  |     '                LIMIT ? OFFSET ?\n' +
+social_media_backend  |     '            ',
+social_media_backend  |   sqlState: 'HY000',
+social_media_backend  |   sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+social_media_backend  | }
+social_media_backend  | Error in getFeed: Error: Incorrect arguments to mysqld_stmt_execute
+social_media_backend  |     at PromisePool.execute (/app/node_modules/mysql2/lib/promise/pool.js:54:22)
+social_media_backend  |     at exports.getFeed (/app/controllers/postController.js:68:40)
+social_media_backend  |     at Layer.handleRequest (/app/node_modules/router/lib/layer.js:152:17)
+social_media_backend  |     at next (/app/node_modules/router/lib/route.js:157:13)
+social_media_backend  |     at module.exports (/app/middleware/optionalAuthMiddleware.js:8:16)
+social_media_backend  |     at Layer.handleRequest (/app/node_modules/router/lib/layer.js:152:17)
+social_media_backend  |     at next (/app/node_modules/router/lib/route.js:157:13)
+social_media_backend  |     at Route.dispatch (/app/node_modules/router/lib/route.js:117:3)
+social_media_backend  |     at handle (/app/node_modules/router/index.js:435:11)
+social_media_backend  |     at Layer.handleRequest (/app/node_modules/router/lib/layer.js:152:17) {
+social_media_backend  |   code: 'ER_WRONG_ARGUMENTS',
+social_media_backend  |   errno: 1210,
+social_media_backend  |   sql: '\n' +
+social_media_backend  |     '                SELECT p.*, u.username, u.avatarUrl, u.displayName, u.isPrivate,\n' +
+social_media_backend  |     '                (SELECT COUNT(*) FROM `Like` WHERE postId = p.id) as likeCount,\n' +
+social_media_backend  |     '                (SELECT COUNT(*) FROM Comment WHERE postId = p.id) as commentCount,\n' +
+social_media_backend  |     "                'suggested' as feedType\n" +
+social_media_backend  |     '                FROM Post p \n' +
+social_media_backend  |     '                JOIN User u ON p.authorId = u.id \n' +
+social_media_backend  |     "                WHERE p.privacy = 'public'\n" +
+social_media_backend  |     '                ORDER BY p.createdAt DESC\n' +
+social_media_backend  |     '                LIMIT ? OFFSET ?\n' +
+social_media_backend  |     '            ',
+social_media_backend  |   sqlState: 'HY000',
+social_media_backend  |   sqlMessage: 'Incorrect arguments to mysqld_stmt_execute'
+social_media_backend  | }

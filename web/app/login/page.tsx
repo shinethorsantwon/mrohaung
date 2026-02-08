@@ -6,8 +6,10 @@ import { useRouter } from 'next/navigation';
 import { Mail, Lock, LogIn, Github, Chrome } from 'lucide-react';
 import { motion } from 'framer-motion';
 import api from '@/lib/api';
+import { useAuth } from '@/lib/AuthContext';
 
 export default function LoginPage() {
+    const { login } = useAuth();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
@@ -22,13 +24,7 @@ export default function LoginPage() {
         try {
             const response = await api.post('/auth/login', { email, password });
             const { token, user } = response.data;
-
-            // Store token in localStorage
-            localStorage.setItem('token', token);
-            localStorage.setItem('user', JSON.stringify(user));
-
-            // Redirect to home page
-            router.push('/');
+            login(token, user);
         } catch (err: any) {
             setError(err.response?.data?.message || 'Login failed. Please try again.');
         } finally {

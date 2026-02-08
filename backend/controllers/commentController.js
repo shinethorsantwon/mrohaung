@@ -1,13 +1,5 @@
 const pool = require('../utils/prisma');
 
-const executeWithFallback = async (queryWithDisplayName, queryWithoutDisplayName, params) => {
-    try {
-        return await pool.execute(queryWithDisplayName, params);
-    } catch (e) {
-        return await pool.execute(queryWithoutDisplayName, params);
-    }
-};
-
 exports.deleteComment = async (req, res) => {
     try {
         const { commentId } = req.params;

@@ -1,5 +1,5 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const pool = require('./prisma');
+const { v4: uuidv4 } = require('uuid');
 
 /**
  * Create and send a notification
@@ -9,39 +9,45 @@ const prisma = new PrismaClient();
  */
 async function sendNotification(io, userId, notificationData) {
     try {
+        const id = uuidv4();
         // Create notification in database
-        const notification = await prisma.notification.create({
-            data: {
-                type: notificationData.type,
-                message: notificationData.message,
-                userId: userId,
-                fromUserId: notificationData.fromUserId,
-                postId: notificationData.postId || null,
-            },
-            include: {
-                fromUser: {
-                    select: {
-                        id: true,
-                        username: true,
-                        avatarUrl: true,
-                    },
-                },
-            },
-        });
+        await pool.execute(
+            'INSERT INTO Notification (id, type, message, userId, fromUserId, postId) VALUES (?, ?, ?, ?, ?, ?)',
+            [
+                id,
+                notificationData.type,
+                notificationData.message,
+                userId,
+                notificationData.fromUserId,
+                notificationData.postId || null,
+            ]
+        );
+
+        // Fetch user info for real-time emission
+        const [users] = await pool.execute(
+            'SELECT id, username, displayName, avatarUrl FROM User WHERE id = ?',
+            [notificationData.fromUserId]
+        );
+        const fromUser = users[0];
 
         // Emit real-time notification via Socket.io
         if (io) {
             io.to(`user:${userId}`).emit('notification', {
-                id: notification.id,
-                type: notification.type,
-                message: notification.message,
-                from: notification.fromUser,
-                createdAt: notification.createdAt,
-                read: notification.read,
+                id: id,
+                type: notificationData.type,
+                message: notificationData.message,
+                from: {
+                    id: fromUser.id,
+                    username: fromUser.username,
+                    displayName: fromUser.displayName,
+                    avatarUrl: fromUser.avatarUrl
+                },
+                createdAt: new Date(),
+                read: false,
             });
         }
 
-        return notification;
+        return { id, ...notificationData, fromUser };
     } catch (error) {
         console.error('Error sending notification:', error);
         throw error;
@@ -63,26 +69,13 @@ async function createNotification(type, fromUserId, toUserId, message, postId = 
             return null;
         }
 
-        const notification = await prisma.notification.create({
-            data: {
-                type,
-                message,
-                userId: toUserId,
-                fromUserId,
-                postId,
-            },
-            include: {
-                fromUser: {
-                    select: {
-                        id: true,
-                        username: true,
-                        avatarUrl: true,
-                    },
-                },
-            },
-        });
+        const id = uuidv4();
+        await pool.execute(
+            'INSERT INTO Notification (id, type, message, userId, fromUserId, postId) VALUES (?, ?, ?, ?, ?, ?)',
+            [id, type, message, toUserId, fromUserId, postId]
+        );
 
-        return notification;
+        return { id, type, message, userId: toUserId, fromUserId, postId };
     } catch (error) {
         console.error('Error creating notification:', error);
         throw error;

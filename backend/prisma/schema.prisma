@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x", "rhel-openssl-1.0.x", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
@@ -14,7 +15,8 @@ model User {
   email                 String                     @unique
   password              String
   bio                   String?
-  avatarUrl             String?
+  avatarUrl             String?                    // equivalent to profilePic
+  profilePic            String?                    // added to match request strictly
   coverUrl              String?
   coverOffset           Int                        @default(50)
   isPrivate             Boolean                    @default(false)
@@ -47,7 +49,8 @@ model User {
 model Post {
   id            String         @id @default(uuid())
   content       String         @db.LongText
-  imageUrl      String?
+  imageUrl      String?        // image field
+  image         String?        // added to match request strictly
   privacy       String         @default("public") // 'public', 'friends', 'private'
   authorId      String
   author        User           @relation(fields: [authorId], references: [id])
