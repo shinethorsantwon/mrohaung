@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { X, ChevronLeft, ChevronRight, Eye, Trash2 } from 'lucide-react';
 import api from '@/lib/api';
+import { fixUrl } from '@/lib/utils';
 
 interface Story {
     id: string;
@@ -154,9 +155,9 @@ export default function StoryViewer({ storyGroup, allStoryGroups, onClose, onSto
             {/* Header */}
             <div className="absolute top-4 left-0 right-0 flex items-center justify-between px-4 z-10">
                 <div className="flex items-center gap-3">
-                    {((isOwnStory ? currentUser.avatarUrl : storyGroup.avatarUrl)) ? (
+                    {((isOwnStory ? currentUser?.avatarUrl : storyGroup.avatarUrl)) ? (
                         <img
-                            src={isOwnStory ? currentUser.avatarUrl : storyGroup.avatarUrl}
+                            src={fixUrl(isOwnStory ? currentUser?.avatarUrl : storyGroup.avatarUrl)}
                             alt={storyGroup.displayName || storyGroup.username || ''}
                             className="w-10 h-10 rounded-full border-2 border-white object-cover"
                         />
@@ -211,7 +212,7 @@ export default function StoryViewer({ storyGroup, allStoryGroups, onClose, onSto
                     </div>
                 ) : (
                     <img
-                        src={currentStory.mediaUrl || currentStory.imageUrl}
+                        src={fixUrl(currentStory.mediaUrl || currentStory.imageUrl || '')}
                         alt="Story"
                         className="max-w-full max-h-full object-contain"
                     />

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { MessageCircle, ArrowRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
+import { fixUrl } from '@/lib/utils';
 import { useSocket } from '@/lib/socket';
 import Link from 'next/link';
 
@@ -87,7 +88,7 @@ export default function RecentChatsCard() {
                                 <div className="relative">
                                     <div className="w-10 h-10 rounded-full bg-[#334155] overflow-hidden border border-[#334155]">
                                         {otherUser.avatarUrl ? (
-                                            <img src={otherUser.avatarUrl} alt={otherUser.username || ''} className="w-full h-full object-cover" />
+                                            <img src={fixUrl(otherUser.avatarUrl)} alt={otherUser.username || ''} className="w-full h-full object-cover" />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 text-white font-bold text-xs">
                                                 {otherUser.username?.[0]?.toUpperCase()}

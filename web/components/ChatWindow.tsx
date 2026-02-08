@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { User, Message } from '@/types/messaging';
 import MessageBubble from './MessageBubble';
 import dynamic from 'next/dynamic';
+import { fixUrl } from '@/lib/utils';
 
 const EmojiPicker = dynamic(() => import('emoji-picker-react'), { ssr: false });
 import { API_URL } from '@/lib/config';
@@ -136,7 +137,7 @@ export default function ChatWindow({
                     <div className="relative">
                         <div
                             className="w-10 h-10 rounded-full bg-[#334155] bg-cover bg-center border border-[#334155]"
-                            style={{ backgroundImage: recipient.avatarUrl ? `url(${recipient.avatarUrl})` : undefined }}
+                            style={{ backgroundImage: recipient.avatarUrl ? `url(${fixUrl(recipient.avatarUrl)})` : undefined }}
                         />
                         <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-[#1e293b]" />
                     </div>
@@ -341,7 +342,7 @@ export default function ChatWindow({
                             <div className="p-6 flex flex-col items-center text-center">
                                 <div
                                     className="w-24 h-24 rounded-full bg-[#1e293b] bg-cover bg-center border-4 border-blue-500/20 shadow-2xl mb-4"
-                                    style={{ backgroundImage: recipient.avatarUrl ? `url(${recipient.avatarUrl})` : undefined }}
+                                    style={{ backgroundImage: recipient.avatarUrl ? `url(${fixUrl(recipient.avatarUrl)})` : undefined }}
                                 />
                                 <h3 className="text-xl font-bold text-white">{recipient.displayName || recipient.username}</h3>
                                 <p className="text-sm text-green-500 mb-6 font-medium">Active Now</p>
@@ -352,7 +353,7 @@ export default function ChatWindow({
                                         <div className="grid grid-cols-3 gap-2">
                                             {sharedMedia.length > 0 ? sharedMedia.map(item => (
                                                 <div key={item.id} className="aspect-square rounded-lg bg-[#1e293b] overflow-hidden group cursor-pointer border border-[#334155]/50 hover:border-blue-500/50 transition-all">
-                                                    <img src={item.imageUrl} alt="Shared" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                                    <img src={fixUrl(item.imageUrl)} alt="Shared" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                                                 </div>
                                             )) : (
                                                 <div className="col-span-3 py-8 flex flex-col items-center opacity-30">

@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { MessageCircle, X, Clock, ChevronUp, ArrowLeft, Send, Sparkles, Users } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 import api from '@/lib/api';
+import { fixUrl } from '@/lib/utils';
 import { useSocket } from '@/lib/socket';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Message, User } from '@/types/messaging';
@@ -251,7 +252,7 @@ export default function MessageDropdown({ onChatSelect, variant = 'header' }: Me
                                         return (
                                             <button key={item.id} onClick={() => handleUserSelect(otherUser)} className={`w-full flex items-center gap-3 p-2.5 mb-0.5 rounded-xl hover:bg-white/5 text-left group`}>
                                                 <div className="w-8 h-8 rounded-lg bg-[#334155] overflow-hidden">
-                                                    {otherUser.avatarUrl ? <img src={otherUser.avatarUrl} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center bg-blue-600/20 text-blue-400 font-bold text-xs">{(otherUser.displayName || otherUser.username)?.[0]?.toUpperCase()}</div>}
+                                                    {otherUser.avatarUrl ? <img src={fixUrl(otherUser.avatarUrl)} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center bg-blue-600/20 text-blue-400 font-bold text-xs">{(otherUser.displayName || otherUser.username)?.[0]?.toUpperCase()}</div>}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center justify-between mb-0.5">

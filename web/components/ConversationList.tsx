@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Search } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { fixUrl } from '@/lib/utils';
 
 import { User, Message, Conversation } from '@/types/messaging';
 
@@ -79,7 +80,7 @@ export default function ConversationList({ conversations, selectedId, onSelect, 
                                     <div className="relative">
                                         <div
                                             className={`w-12 h-12 rounded-full bg-[#1e293b] bg-cover bg-center border-2 transition-all ${isActive ? 'border-blue-500 shadow-lg shadow-blue-500/20' : 'border-[#334155]/50 group-hover:border-[#475569]'}`}
-                                            style={{ backgroundImage: otherUser.avatarUrl ? `url(${otherUser.avatarUrl})` : undefined }}
+                                            style={{ backgroundImage: otherUser.avatarUrl ? `url(${fixUrl(otherUser.avatarUrl)})` : undefined }}
                                         />
                                         <div className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-[#0f172a]" />
                                     </div>

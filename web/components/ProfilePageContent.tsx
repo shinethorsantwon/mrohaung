@@ -15,6 +15,7 @@ import RecentChatsCard from '@/components/RecentChatsCard';
 import FriendSuggestions from '@/components/FriendSuggestions';
 import CreatePost from '@/components/CreatePost';
 import PostModal from '@/components/PostModal';
+import { fixUrl } from '@/lib/utils';
 
 interface User {
     id: string;
@@ -353,7 +354,7 @@ export default function ProfilePageContent() {
             >
                 {(tempCoverPreview || user.coverUrl) && (
                     <img
-                        src={tempCoverPreview || user.coverUrl}
+                        src={tempCoverPreview || fixUrl(user.coverUrl)}
                         alt="Cover"
                         className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none transition-transform duration-700 group-hover:scale-105"
                         style={{ objectPosition: `50% ${isRepositioning ? repositionOffset : (user.coverOffset ?? 50)}%` }}
@@ -434,7 +435,7 @@ export default function ProfilePageContent() {
                     <div className="relative flex-shrink-0 z-20">
                         <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full border-4 border-[#0f172a] bg-[#1e293b] overflow-hidden shadow-2xl ring-2 ring-white/5">
                             {user.avatarUrl ? (
-                                <img src={user.avatarUrl} alt={user.displayName || user.username || ''} className="w-full h-full object-cover" />
+                                <img src={fixUrl(user.avatarUrl)} alt={user.displayName || user.username || ''} className="w-full h-full object-cover" />
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600">
                                     <span className="text-3xl sm:text-4xl font-bold text-white">{(user.displayName || user.username)?.[0]?.toUpperCase() || 'U'}</span>

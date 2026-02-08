@@ -1,6 +1,7 @@
 'use client';
 
 import { Message } from '@/types/messaging';
+import { fixUrl } from '@/lib/utils';
 
 interface MessageBubbleProps {
     message: Message;
@@ -26,7 +27,7 @@ export default function MessageBubble({ message, currentUserId, formatTime }: Me
                     <div className="relative flex-shrink-0 mb-0.5">
                         <div className="w-7 h-7 rounded-full overflow-hidden border border-white/10 ring-2 ring-white/5 shadow-md bg-[#1e293b]">
                             {message.sender?.avatarUrl ? (
-                                <img src={message.sender.avatarUrl} alt="" className="w-full h-full object-cover" />
+                                <img src={fixUrl(message.sender.avatarUrl)} alt="" className="w-full h-full object-cover" />
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center text-[10px] font-black text-white/40">
                                     {(message.sender?.displayName || message.sender?.username)?.[0]?.toUpperCase() || '?'}
@@ -65,7 +66,7 @@ export default function MessageBubble({ message, currentUserId, formatTime }: Me
                         </div>
                         <div className="w-7 h-7 rounded-full overflow-hidden border border-blue-500/30 ring-2 ring-blue-500/10 shadow-md bg-blue-600/10">
                             {message.sender?.avatarUrl ? (
-                                <img src={message.sender.avatarUrl} alt="" className="w-full h-full object-cover" />
+                                <img src={fixUrl(message.sender.avatarUrl)} alt="" className="w-full h-full object-cover" />
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center text-[10px] font-black text-blue-400">
                                     {(message.sender?.displayName || message.sender?.username)?.[0]?.toUpperCase() || 'Y'}

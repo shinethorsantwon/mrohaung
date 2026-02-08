@@ -8,6 +8,7 @@ import { useState, useEffect, useRef } from 'react';
 import api from '@/lib/api';
 import ReportModal from './ReportModal';
 import { useSocket } from '@/lib/socket';
+import { fixUrl } from '@/lib/utils';
 
 interface PostCardProps {
     post: any;
@@ -111,16 +112,11 @@ export default function PostCard({ post, isGuest = false, onDelete, onUpdate, on
 
     const handleReaction = async (type: string) => {
         if (isGuest) {
-            // Ideally redirect or show modal. For now, alert or link.
-            // Since we are in an app, maybe router push?
-            // window.location.href = '/login'; 
-            // Or just do nothing and let them see the CTA at top.
             alert('Please login to react to posts!');
             return;
         }
 
         const previousType = reactionType;
-        // const previousCount = likeCount; // Keep if needed for rollback logic
 
         // Optimistic UI Update
         if (reactionType === type) {
@@ -145,9 +141,7 @@ export default function PostCard({ post, isGuest = false, onDelete, onUpdate, on
             }
         } catch (error) {
             console.error('Failed to react:', error);
-            // Revert state if needed, simpler to just re-fetch or leave as is for now
             setReactionType(previousType);
-            // setLikeCount(previousCount);
         }
     };
 
@@ -181,7 +175,7 @@ export default function PostCard({ post, isGuest = false, onDelete, onUpdate, on
                     <div className="relative">
                         <div
                             className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 bg-cover bg-center ring-2 ring-blue-500/20 group-hover:ring-blue-500/40 transition-all duration-300"
-                            style={{ backgroundImage: post.author.avatarUrl ? `url(${post.author.avatarUrl})` : undefined }}
+                            style={{ backgroundImage: post.author.avatarUrl ? `url(${fixUrl(post.author.avatarUrl)})` : undefined }}
                         >
                             {!post.author.avatarUrl && (
                                 <div className="w-full h-full flex items-center justify-center text-white font-bold text-sm">
@@ -294,7 +288,7 @@ export default function PostCard({ post, isGuest = false, onDelete, onUpdate, on
             {post.imageUrl && (
                 <div className="relative aspect-video w-full bg-[#0f172a] overflow-hidden border-y border-[#334155]/20">
                     <img
-                        src={post.imageUrl}
+                        src={fixUrl(post.imageUrl)}
                         alt="Post"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
@@ -305,7 +299,6 @@ export default function PostCard({ post, isGuest = false, onDelete, onUpdate, on
             {/* Actions */}
             <div className="px-3 py-2 flex items-center justify-between border-t border-[#334155]/30">
                 <div className="flex items-center gap-3">
-                    {/* Reaction Picker Logic */}
                     <div
                         className="relative"
                         onMouseEnter={() => setShowReactions(true)}
@@ -366,7 +359,7 @@ export default function PostCard({ post, isGuest = false, onDelete, onUpdate, on
                     <div className="flex items-start gap-2">
                         <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex-shrink-0 overflow-hidden ring-2 ring-blue-500/10">
                             {firstComment.user?.avatarUrl ? (
-                                <img src={firstComment.user.avatarUrl} alt={firstComment.user?.displayName || firstComment.user?.username || ''} className="w-full h-full object-cover" />
+                                <img src={fixUrl(firstComment.user.avatarUrl)} alt={firstComment.user?.displayName || firstComment.user?.username || ''} className="w-full h-full object-cover" />
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center">
                                     <span className="text-white text-[10px] font-bold">

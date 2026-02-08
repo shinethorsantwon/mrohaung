@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { X, Upload, Loader2, Image as ImageIcon } from 'lucide-react';
 import api from '@/lib/api';
 import imageCompression from 'browser-image-compression';
+import { fixUrl } from '@/lib/utils';
 
 interface EditProfileModalProps {
     isOpen: boolean;
@@ -138,7 +139,7 @@ export default function EditProfileModal({ isOpen, onClose, currentUser, onUpdat
                         <div className="relative h-32 w-full rounded-xl overflow-hidden bg-[#0f172a] border border-[#334155]">
                             {coverPreview || currentUser?.coverUrl ? (
                                 <img
-                                    src={coverPreview || currentUser.coverUrl}
+                                    src={coverPreview || fixUrl(currentUser.coverUrl)}
                                     alt="Cover preview"
                                     className="w-full h-full object-cover"
                                 />
@@ -164,7 +165,7 @@ export default function EditProfileModal({ isOpen, onClose, currentUser, onUpdat
                             <div className="w-24 h-24 rounded-full overflow-hidden bg-[#334155] border-4 border-[#1e293b]">
                                 {preview || currentUser?.avatarUrl ? (
                                     <img
-                                        src={preview || currentUser.avatarUrl}
+                                        src={preview || fixUrl(currentUser.avatarUrl)}
                                         alt="Avatar"
                                         className="w-full h-full object-cover"
                                     />

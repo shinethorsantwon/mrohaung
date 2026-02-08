@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { Image as ImageIcon, Send, X, Globe, Users, Lock, ChevronDown, Search } from 'lucide-react';
 import api from '@/lib/api';
 import imageCompression from 'browser-image-compression';
+import { fixUrl } from '@/lib/utils';
 
 interface CreatePostProps {
     /** Called after post is created. Pass the created post to show it immediately without refresh. */
@@ -217,7 +218,7 @@ export default function CreatePost({ onPostCreated }: CreatePostProps) {
                 <div className="flex gap-4 items-center">
                     <div className="w-11 h-11 rounded-full border-2 border-[#1e293b] flex-shrink-0 ring-2 ring-blue-500/10 overflow-hidden">
                         {currentUser?.avatarUrl ? (
-                            <img src={currentUser.avatarUrl} alt="" className="w-full h-full object-cover" />
+                            <img src={fixUrl(currentUser.avatarUrl)} alt="" className="w-full h-full object-cover" />
                         ) : (
                             <div className="w-full h-full bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
                                 {(currentUser?.displayName || currentUser?.username)?.[0]?.toUpperCase() || 'U'}
@@ -263,7 +264,7 @@ export default function CreatePost({ onPostCreated }: CreatePostProps) {
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-full border-2 border-[#334155] flex-shrink-0 ring-2 ring-blue-500/10 overflow-hidden">
                                         {currentUser?.avatarUrl ? (
-                                            <img src={currentUser.avatarUrl} alt="" className="w-full h-full object-cover" />
+                                            <img src={fixUrl(currentUser.avatarUrl)} alt="" className="w-full h-full object-cover" />
                                         ) : (
                                             <div className="w-full h-full bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center text-white font-bold text-xs">
                                                 {(currentUser?.displayName || currentUser?.username)?.[0]?.toUpperCase() || 'U'}

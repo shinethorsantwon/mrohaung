@@ -5,6 +5,7 @@ import { Plus } from 'lucide-react';
 import api from '@/lib/api';
 import CreateStory from './CreateStory';
 import StoryViewer from './StoryViewer';
+import { fixUrl } from '@/lib/utils';
 
 interface Story {
     id: string;
@@ -78,7 +79,7 @@ export default function StoriesBar() {
                             <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center">
                                 {currentUser?.avatarUrl ? (
                                     <img
-                                        src={currentUser.avatarUrl}
+                                        src={fixUrl(currentUser.avatarUrl)}
                                         alt="Your story"
                                         className="w-14 h-14 rounded-full object-cover border border-[#1e293b]"
                                     />
@@ -112,7 +113,7 @@ export default function StoriesBar() {
                                 }`}>
                                 {((group.userId === currentUser?.id ? currentUser.avatarUrl : group.avatarUrl)) ? (
                                     <img
-                                        src={group.userId === currentUser?.id ? currentUser.avatarUrl : group.avatarUrl}
+                                        src={fixUrl(group.userId === currentUser?.id ? currentUser.avatarUrl : group.avatarUrl)}
                                         alt={group.displayName || group.username || ''}
                                         className="w-full h-full rounded-full object-cover border-2 border-[#1e293b]"
                                     />

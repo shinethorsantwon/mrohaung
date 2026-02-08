@@ -5,6 +5,7 @@ import { Bell, X, UserPlus, Heart, MessageCircle } from 'lucide-react';
 import { useSocket } from '@/lib/socket';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
+import { fixUrl } from '@/lib/utils';
 
 interface Notification {
     id: string;
@@ -152,7 +153,7 @@ export default function NotificationDropdown() {
                                         <div className="w-10 h-10 rounded-full bg-[#334155] overflow-hidden flex-shrink-0">
                                             {notification.from.avatarUrl ? (
                                                 <img
-                                                    src={notification.from.avatarUrl}
+                                                    src={fixUrl(notification.from.avatarUrl)}
                                                     alt={notification.from.displayName || notification.from.username || ''}
                                                     className="w-full h-full object-cover"
                                                 />

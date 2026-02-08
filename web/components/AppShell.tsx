@@ -10,6 +10,7 @@ import ThemeToggle from '@/components/ThemeToggle';
 import MessageDropdown from '@/components/MessageDropdown';
 import api from '@/lib/api';
 import { useAuth } from '@/lib/AuthContext';
+import { fixUrl } from '@/lib/utils';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
@@ -169,7 +170,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                                         className="w-10 h-10 rounded-full border-2 border-[#1e293b] cursor-pointer hover:opacity-80 transition-opacity overflow-hidden"
                                     >
                                         {currentUser.avatarUrl ? (
-                                            <img src={currentUser.avatarUrl} alt="" className="w-full h-full object-cover" />
+                                            <img src={fixUrl(currentUser.avatarUrl)} alt="" className="w-full h-full object-cover" />
                                         ) : (
                                             <div className="w-full h-full bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
                                                 {(currentUser.displayName || currentUser.username)?.[0]?.toUpperCase()}

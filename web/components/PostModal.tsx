@@ -9,6 +9,7 @@ import VoiceRecorder from './VoiceRecorder';
 import { useSocket } from '@/lib/socket';
 import StickerPicker from './StickerPicker';
 import ReactionPicker from './ReactionPicker';
+import { fixUrl } from '@/lib/utils';
 
 interface PostModalProps {
     isOpen: boolean;
@@ -133,7 +134,7 @@ function CommentItem({ comment, currentUserId, onUpdate, onDelete, onReply, repl
             <div className="flex items-start gap-2 group relative w-full">
                 <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex-shrink-0 overflow-hidden ring-2 ring-blue-500/10 mt-0.5">
                     {comment.user?.avatarUrl ? (
-                        <img src={comment.user.avatarUrl} alt={comment.user?.displayName || comment.user?.username || ''} className="w-full h-full object-cover" />
+                        <img src={fixUrl(comment.user.avatarUrl)} alt={comment.user?.displayName || comment.user?.username || ''} className="w-full h-full object-cover" />
                     ) : (
                         <div className="w-full h-full flex items-center justify-center bg-gray-700">
                             <span className="text-white text-[10px] font-bold">
@@ -196,8 +197,8 @@ function CommentItem({ comment, currentUserId, onUpdate, onDelete, onReply, repl
                                             )}
                                         </div>
                                     )}
-                                    {comment.stickerUrl && <img src={comment.stickerUrl} alt="Sticker" className="w-16 h-16 object-contain mt-1.5" />}
-                                    {comment.audioUrl && <div className="mt-1.5"><AudioCommentPlayer src={comment.audioUrl} /></div>}
+                                    {comment.stickerUrl && <img src={fixUrl(comment.stickerUrl)} alt="Sticker" className="w-16 h-16 object-contain mt-1.5" />}
+                                    {comment.audioUrl && <div className="mt-1.5"><AudioCommentPlayer src={fixUrl(comment.audioUrl) || ''} /></div>}
                                 </>
                             )}
                         </div>
@@ -539,10 +540,6 @@ export default function PostModal({ isOpen, onClose, post, onUpdate, onDelete, c
                 aria-label="Post details"
                 className="bg-[#1e293b] sm:border border-none border-[#334155]/60 sm:rounded-3xl rounded-none w-full max-w-lg h-full sm:h-auto sm:max-h-[80vh] flex flex-col overflow-hidden shadow-2xl relative"
             >
-                {/* Close Button */}
-                {/* Header Actions */}
-
-
                 {/* Main Header Bar (Mobile Only) */}
                 <div className="sm:hidden sticky top-0 z-[50] bg-[#1e293b] px-4 h-[44px] flex items-center justify-between border-none">
                     <h2 className="text-[15px] font-bold text-white tracking-wide">Post</h2>
@@ -560,7 +557,7 @@ export default function PostModal({ isOpen, onClose, post, onUpdate, onDelete, c
                     <div className="sticky top-0 z-[40] bg-[#1e293b] px-4 sm:py-3 pt-8 pb-3 mt-0 flex items-center justify-between border-b border-[#334155]/10">
                         <div className="flex items-center gap-3">
                             <Link href={`/profile/${post.author.username}`} className="relative flex-shrink-0 group" onClick={onClose}>
-                                <div className="w-10 h-10 rounded-full bg-[#334155] bg-cover bg-center ring-2 ring-blue-500/20 group-hover:ring-blue-500/40 transition-all duration-300" style={{ backgroundImage: post.author.avatarUrl ? `url(${post.author.avatarUrl})` : undefined }} />
+                                <div className="w-10 h-10 rounded-full bg-[#334155] bg-cover bg-center ring-2 ring-blue-500/20 group-hover:ring-blue-500/40 transition-all duration-300" style={{ backgroundImage: post.author.avatarUrl ? `url(${fixUrl(post.author.avatarUrl)})` : undefined }} />
                                 <div className="absolute bottom-0.5 right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-[#1e293b]" />
                             </Link>
                             <div className="flex flex-col justify-center">
@@ -650,7 +647,7 @@ export default function PostModal({ isOpen, onClose, post, onUpdate, onDelete, c
                                 <>{post.content && <p className="text-[#e2e8f0] text-[15px] leading-relaxed whitespace-pre-wrap">{post.content}</p>}</>
                             )}
                         </div>
-                        {post.imageUrl && <div className="rounded-lg overflow-hidden bg-black mb-3 border border-[#334155]/50"><img src={post.imageUrl} alt="Post" className="w-full h-auto max-h-[400px] object-contain mx-auto" /></div>}
+                        {post.imageUrl && <div className="rounded-lg overflow-hidden bg-black mb-3 border border-[#334155]/50"><img src={fixUrl(post.imageUrl)} alt="Post" className="w-full h-auto max-h-[400px] object-contain mx-auto" /></div>}
 
                         {isEditing && (
                             <div className="flex justify-center gap-3 py-4 border-t border-[#334155]/40 mt-2">
@@ -705,19 +702,17 @@ export default function PostModal({ isOpen, onClose, post, onUpdate, onDelete, c
                             <div className="p-4 space-y-4">
                                 {comments.length > 0 ? (
                                     <div className="space-y-3.5 pb-4">
-                                        <div className="space-y-3.5 pb-4">
-                                            {comments.filter(c => !c.parentId).map((comment) => (
-                                                <CommentItem
-                                                    key={comment.id}
-                                                    comment={comment}
-                                                    currentUserId={currentUserId}
-                                                    onUpdate={(id, content) => setComments(prev => prev.map(c => c.id === id ? { ...c, content } : c))}
-                                                    onDelete={(id) => setComments(prev => prev.filter(c => c.id !== id))}
-                                                    onReply={handleReply}
-                                                    replies={comments.filter(c => c.parentId === comment.id)}
-                                                />
-                                            ))}
-                                        </div>
+                                        {comments.filter(c => !c.parentId).map((comment) => (
+                                            <CommentItem
+                                                key={comment.id}
+                                                comment={comment}
+                                                currentUserId={currentUserId}
+                                                onUpdate={(id, content) => setComments(prev => prev.map(c => c.id === id ? { ...c, content } : c))}
+                                                onDelete={(id) => setComments(prev => prev.filter(c => c.id !== id))}
+                                                onReply={handleReply}
+                                                replies={comments.filter(c => c.parentId === comment.id)}
+                                            />
+                                        ))}
                                     </div>
                                 ) : (
                                     <div className="text-center py-6"><p className="text-[#64748b] text-xs">No comments yet</p><p className="text-[11px] text-[#475569] mt-0.5">Start the conversation!</p></div>
@@ -735,7 +730,7 @@ export default function PostModal({ isOpen, onClose, post, onUpdate, onDelete, c
                             <div className="flex-1 bg-[#1e293b]/40 hover:bg-[#1e293b]/60 transition-colors rounded-2xl px-3 py-2 min-h-[44px] flex items-center">
                                 {selectedSticker ? (
                                     <div className="flex items-center gap-2 bg-[#1e293b] px-3 py-1 rounded-xl border border-[#334155] w-fit">
-                                        <img src={selectedSticker} alt="Selected" className="w-8 h-8 object-contain" />
+                                        <img src={fixUrl(selectedSticker)} alt="Selected" className="w-8 h-8 object-contain" />
                                         <button type="button" onClick={() => setSelectedSticker(null)} className="p-1 hover:bg-white/10 rounded-full text-[#94a3b8]"><X className="w-3 h-3" /></button>
                                     </div>
                                 ) : replyingTo ? (
@@ -803,27 +798,21 @@ export default function PostModal({ isOpen, onClose, post, onUpdate, onDelete, c
                                                 )}
                                             </AnimatePresence>
                                         </div>
-                                        <VoiceRecorder
-                                            onRecordingComplete={(blob) => setAudioBlob(blob)}
-                                            onCancel={() => { }}
-                                        />
+                                        <VoiceRecorder onRecordingComplete={(blob) => setAudioBlob(blob)} onCancel={() => setAudioBlob(null)} />
                                     </>
                                 )}
                                 <button
                                     type="submit"
-                                    disabled={(!commentText.trim() && !audioBlob && !selectedSticker) || submitting}
-                                    className="p-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:bg-[#334155] text-white rounded-full transition-all shadow-lg shadow-blue-500/20"
+                                    disabled={submitting || (!commentText.trim() && !audioBlob && !selectedSticker)}
+                                    className="p-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-full transition-all shadow-lg shadow-blue-500/20 active:scale-95 flex-shrink-0"
                                 >
-                                    <Send className="w-4 h-4 translate-x-px translate-y-px" />
+                                    {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
                                 </button>
                             </div>
                         </form>
                     ) : (
-                        <div className="flex items-center justify-between px-2">
-                            <p className="text-sm text-[#94a3b8]">Log in to like or comment.</p>
-                            <Link href="/login" className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-full text-xs font-bold transition-colors">
-                                Login
-                            </Link>
+                        <div className="flex items-center justify-center py-2 px-4 bg-[#1e293b]/40 rounded-xl border border-[#334155]/50">
+                            <p className="text-sm text-[#94a3b8]">Please login to join the conversation</p>
                         </div>
                     )}
                 </div>
@@ -831,3 +820,4 @@ export default function PostModal({ isOpen, onClose, post, onUpdate, onDelete, c
         </div>
     );
 }
+

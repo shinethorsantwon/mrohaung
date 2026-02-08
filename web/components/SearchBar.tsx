@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Search as SearchIcon, X, User, Hash } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
+import { fixUrl } from '@/lib/utils';
 
 interface SearchResult {
     type: 'user' | 'post';
@@ -105,7 +106,7 @@ export default function SearchBar() {
                                         <>
                                             <div className="w-10 h-10 rounded-full bg-[#334155] overflow-hidden flex-shrink-0">
                                                 {result.avatarUrl ? (
-                                                    <img src={result.avatarUrl} alt={result.title} className="w-full h-full object-cover" />
+                                                    <img src={fixUrl(result.avatarUrl)} alt={result.title} className="w-full h-full object-cover" />
                                                 ) : (
                                                     <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600">
                                                         <span className="text-white font-bold">{result.title[0].toUpperCase()}</span>

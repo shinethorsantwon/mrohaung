@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { X, Send, Loader2, Heart, Reply } from 'lucide-react';
 import api from '@/lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
+import { fixUrl } from '@/lib/utils';
 
 interface CommentsModalProps {
     isOpen: boolean;
@@ -96,7 +97,7 @@ export default function CommentsModal({ isOpen, onClose, post, onCommentAdded }:
                     <div className="flex items-start gap-4">
                         <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 flex-shrink-0 overflow-hidden ring-2 ring-blue-500/20">
                             {post.author.avatarUrl ? (
-                                <img src={post.author.avatarUrl} alt={post.author?.displayName || post.author?.username || ''} className="w-full h-full object-cover" />
+                                <img src={fixUrl(post.author.avatarUrl)} alt={post.author?.displayName || post.author?.username || ''} className="w-full h-full object-cover" />
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center">
                                     <span className="text-white font-bold text-lg">{(post.author?.displayName || post.author?.username)?.[0]?.toUpperCase() || 'U'}</span>
@@ -132,7 +133,7 @@ export default function CommentsModal({ isOpen, onClose, post, onCommentAdded }:
                                         <div className="flex items-start gap-3">
                                             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex-shrink-0 overflow-hidden ring-2 ring-transparent group-hover:ring-blue-500/30 transition-all duration-200">
                                                 {comment.user?.avatarUrl ? (
-                                                    <img src={comment.user.avatarUrl} alt={comment.user?.displayName || comment.user?.username || ''} className="w-full h-full object-cover" />
+                                                    <img src={fixUrl(comment.user.avatarUrl)} alt={comment.user?.displayName || comment.user?.username || ''} className="w-full h-full object-cover" />
                                                 ) : (
                                                     <div className="w-full h-full flex items-center justify-center">
                                                         <span className="text-white text-xs font-bold">

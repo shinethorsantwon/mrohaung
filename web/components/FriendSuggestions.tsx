@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { UserPlus, X, Users } from 'lucide-react';
 import api from '@/lib/api';
 import Link from 'next/link';
+import { fixUrl } from '@/lib/utils';
 
 interface MutualFriend {
     id: string;
@@ -107,7 +108,7 @@ export default function FriendSuggestions() {
                         <Link href={`/profile/${suggestion.id}`}>
                             {suggestion.avatarUrl ? (
                                 <img
-                                    src={suggestion.avatarUrl}
+                                    src={fixUrl(suggestion.avatarUrl)}
                                     alt={suggestion.displayName || suggestion.username || ''}
                                     className="w-10 h-10 rounded-full object-cover cursor-pointer hover:opacity-80 transition-opacity"
                                 />
@@ -142,7 +143,7 @@ export default function FriendSuggestions() {
                                         <div key={friend.id} className="relative group/avatar">
                                             {friend.avatarUrl ? (
                                                 <img
-                                                    src={friend.avatarUrl}
+                                                    src={fixUrl(friend.avatarUrl)}
                                                     alt={friend.displayName || friend.username || ''}
                                                     className="w-5 h-5 rounded-full border border-[#1e293b]"
                                                     title={friend.displayName || friend.username}
