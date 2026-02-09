@@ -31,7 +31,7 @@ async function sendNotification(io, userId, notificationData) {
         const fromUser = users[0];
 
         // Emit real-time notification via Socket.io
-        if (io) {
+        if (io && fromUser) {
             io.to(`user:${userId}`).emit('notification', {
                 id: id,
                 type: notificationData.type,
@@ -50,6 +50,7 @@ async function sendNotification(io, userId, notificationData) {
         return { id, ...notificationData, fromUser };
     } catch (error) {
         console.error('Error sending notification:', error);
+        console.error('Notification data:', notificationData);
         throw error;
     }
 }

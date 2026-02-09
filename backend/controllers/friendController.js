@@ -3,8 +3,13 @@ const { v4: uuidv4 } = require('uuid');
 const { sendNotification } = require('../utils/notificationHelper');
 
 exports.sendFriendRequest = async (req, res) => {
+    console.log(`[FRIEND_REQUEST] From: ${req.userId}, To: ${req.params.userId || req.body.friendId}`);
     try {
         const friendId = req.body.friendId || req.params.userId || req.params.friendId;
+
+        if (!friendId) {
+            return res.status(400).json({ message: 'Friend ID is required' });
+        }
 
         if (req.userId === friendId) {
             return res.status(400).json({ message: 'Cannot add yourself' });
@@ -36,8 +41,8 @@ exports.sendFriendRequest = async (req, res) => {
 
         res.status(201).json({ id: friendshipId, status: 'PENDING' });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Error sending friend request' });
+        console.error('[FRIEND_REQUEST_ERROR]', error);
+        res.status(500).json({ message: 'Error sending friend request', error: error.message });
     }
 };
 
