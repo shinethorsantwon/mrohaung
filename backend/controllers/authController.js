@@ -259,3 +259,60 @@ exports.me = async (req, res) => {
     }
 };
 
+exports.resendVerification = async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        if (!email) {
+            return res.status(400).json({ message: 'Email is required' });
+        }
+
+        const [users] = await pool.execute(
+            'SELECT id, isVerified, verificationToken FROM User WHERE email = ?',
+            [email]
+        );
+
+        if (users.length === 0) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        const user = users[0];
+
+        if (user.isVerified) {
+            return res.status(400).json({ message: 'Email is already verified' });
+        }
+
+        // Generate new token if needed or reuse existing
+        const verificationToken = user.verificationToken || crypto.randomBytes(32).toString('hex');
+
+        if (!user.verificationToken) {
+            await pool.execute(
+                'UPDATE User SET verificationToken = ? WHERE id = ?',
+                [verificationToken, user.id]
+            );
+        }
+
+        const frontendUrl = process.env.FRONTEND_URL || 'https://mrohaung.com';
+        const verifyUrl = `${frontendUrl}/verify-email?token=${verificationToken}`;
+
+        await sendEmail({
+            email: email,
+            subject: 'Verify your MROHAUNG Account',
+            html: `
+                <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+                    <h2 style="color: #4f46e5;">Verify your Email</h2>
+                    <p>Click the button below to verify your email address:</p>
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="${verifyUrl}" style="background-color: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Verify Email</a>
+                    </div>
+                </div>
+            `
+        });
+
+        res.json({ message: 'Verification email sent successfully.' });
+    } catch (error) {
+        console.error('Resend Verification Error:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
+
