@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useInView } from 'react-intersection-observer';
 import { ShieldAlert, CheckCircle2 } from 'lucide-react';
 import CreatePost from '@/components/CreatePost';
+import { motion, AnimatePresence } from 'framer-motion';
 import PostCard from '@/components/PostCard';
 import PostModal from '@/components/PostModal';
 import StoriesBar from '@/components/StoriesBar';
@@ -124,7 +125,15 @@ export default function FeedPage() {
             <p className="text-red-400/80 text-xs">Please check your email to verify your account. Unverified accounts cannot post or interact.</p>
           </div>
           <button
-            onClick={() => {/* TODO: Resend verification email */ }}
+            onClick={async () => {
+              try {
+                await api.post('/auth/resend-verification', { email: currentUser.email });
+                alert('Verification email sent! Please check your inbox.');
+              } catch (error) {
+                console.error('Failed to resend verification email:', error);
+                alert('Failed to send verification email. Please try again later.');
+              }
+            }}
             className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-500 rounded-lg text-xs font-bold transition-all"
           >
             Resend Email
@@ -146,7 +155,7 @@ export default function FeedPage() {
 
       {currentUser && <StoriesBar />}
 
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-8">
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_280px] gap-6">
         <section className="min-w-0">
           {currentUser && currentUser.isVerified && (
             <CreatePost onPostCreated={(newPost?: any) => {
@@ -160,17 +169,6 @@ export default function FeedPage() {
             }} />
           )}
 
-          {!currentUser && (
-            <div className="bg-[#1e293b]/50 border border-[#334155] rounded-3xl p-8 text-center mb-8 relative overflow-hidden group">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600" />
-              <h3 className="text-2xl font-black text-white mb-2">Join the Infinity Network</h3>
-              <p className="text-[#94a3b8] mb-6 max-w-sm mx-auto">Connect with friends, share your universe, and experience the next generation of social media.</p>
-              <div className="flex justify-center gap-4">
-                <a href="/login?mode=login" className="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold transition-all shadow-lg shadow-blue-600/20 active:scale-95">Access System</a>
-                <a href="/login?mode=register" className="px-8 py-3 bg-[#334155] hover:bg-[#475569] text-white rounded-2xl font-bold transition-all active:scale-95">Initialize ID</a>
-              </div>
-            </div>
-          )}
 
           {loading ? (
             <div className="space-y-6">
@@ -180,27 +178,41 @@ export default function FeedPage() {
             </div>
           ) : (
             <div className="space-y-6">
-              {posts.map(post => (
-                <PostCard
-                  key={post.id}
-                  post={post}
-                  isGuest={!currentUser}
-                  onDelete={(postId) => {
-                    setPosts(prev => prev.filter(p => p.id !== postId));
-                  }}
-                  onUpdate={(updatedPost) => {
-                    setPosts(prev => prev.map(p => p.id === updatedPost.id ? { ...p, ...updatedPost } : p));
-                  }}
-                  onEdit={(post) => {
-                    setSelectedPost(post);
-                    setShowPostModal(true);
-                  }}
-                  onViewComments={(post) => {
-                    setSelectedPost(post);
-                    setShowPostModal(true);
-                  }}
-                />
-              ))}
+              <AnimatePresence mode="popLayout">
+                {posts.map(post => (
+                  <motion.div
+                    key={post.id}
+                    layout
+                    initial={{ opacity: 0, y: -20, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <PostCard
+                      post={post}
+                      isGuest={!currentUser}
+                      onDelete={(postId) => {
+                        setPosts(prev => prev.filter(p => p.id !== postId));
+                      }}
+                      onUpdate={(updatedPost) => {
+                        setPosts(prev => prev.map(p => p.id === updatedPost.id ? { ...p, ...updatedPost } : p));
+                      }}
+                      onEdit={(post) => {
+                        setSelectedPost(post);
+                        setShowPostModal(true);
+                      }}
+                      onViewComments={(post) => {
+                        setSelectedPost(post);
+                        setShowPostModal(true);
+                      }}
+                      onClick={() => {
+                        setSelectedPost(post);
+                        setShowPostModal(true);
+                      }}
+                    />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
 
               {posts.length === 0 && !loading && (
                 <div className="text-center py-20 bg-[#1e293b]/20 rounded-[2.5rem] border border-dashed border-[#334155] mb-8">
@@ -223,7 +235,6 @@ export default function FeedPage() {
 
         <aside className="hidden xl:block">
           <div className="sticky top-24 space-y-6">
-            <SearchBar />
             {currentUser && <FriendSuggestions />}
           </div>
         </aside>

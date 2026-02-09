@@ -1,5 +1,9 @@
 const pool = require('../utils/prisma');
 
+const { v4: uuidv4 } = require('uuid');
+const { updateReputation, REPUTATION_POINTS } = require('../utils/reputation');
+const { sendNotification } = require('../utils/notificationHelper');
+
 exports.deleteComment = async (req, res) => {
     try {
         const { commentId } = req.params;
@@ -15,10 +19,6 @@ exports.deleteComment = async (req, res) => {
         }
 
         const comment = comments[0];
-
-        // Allow comment author OR post author to delete (optional, sticking to comment author for now as per usual simple requirement, or maybe check post author too?)
-        // Let's implement strict comment author ownership for delete for now to be safe, or allow post author.
-        // Usually: Comment Author OR Post Author can delete.
 
         // Fetch Post to check author
         const [posts] = await pool.execute('SELECT authorId FROM Post WHERE id = ?', [comment.postId]);
@@ -74,3 +74,56 @@ exports.updateComment = async (req, res) => {
         res.status(500).json({ message: 'Error updating comment' });
     }
 };
+
+exports.likeComment = async (req, res) => {
+    try {
+        const { commentId } = req.params;
+        const { type = 'like' } = req.body;
+
+        const [existing] = await pool.execute(
+            'SELECT * FROM CommentLike WHERE commentId = ? AND userId = ?',
+            [commentId, req.userId]
+        );
+
+        let finalLiked = true;
+
+        if (existing.length > 0) {
+            if (existing[0].type === type) {
+                // Toggle off
+                await pool.execute('DELETE FROM CommentLike WHERE id = ?', [existing[0].id]);
+                finalLiked = false;
+            } else {
+                // Update type
+                await pool.execute('UPDATE CommentLike SET type = ? WHERE id = ?', [type, existing[0].id]);
+                finalLiked = true;
+            }
+        } else {
+            // New Like
+            const likeId = uuidv4();
+            await pool.execute(
+                'INSERT INTO CommentLike (id, commentId, userId, type) VALUES (?, ?, ?, ?)',
+                [likeId, commentId, req.userId, type]
+            );
+
+            // Notify comment author
+            const [commentInfo] = await pool.execute('SELECT userId, postId FROM Comment WHERE id = ?', [commentId]);
+
+            if (commentInfo.length > 0 && commentInfo[0].userId !== req.userId) {
+                const io = req.app.get('io');
+                await sendNotification(io, commentInfo[0].userId, {
+                    type: 'like_comment',
+                    message: 'liked your comment',
+                    fromUserId: req.userId,
+                    postId: commentInfo[0].postId
+                });
+                // Award reputation? Maybe small amount
+            }
+        }
+
+        res.json({ liked: finalLiked, type: finalLiked ? type : null });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error liking comment' });
+    }
+};
+

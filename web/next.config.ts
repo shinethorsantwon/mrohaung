@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: 'export',
-  trailingSlash: false,
+  trailingSlash: true,
   generateBuildId: async () => {
     return `build-${Date.now()}`;
   },

@@ -32,10 +32,17 @@ exports.createPost = async (req, res) => {
 
         const post = posts[0];
         // Format to match expected structure
-        post.author = { username: post.username, displayName: post.displayName, avatarUrl: post.avatarUrl };
+        post.author = { username: post.username, displayName: post.displayName, avatarUrl: post.avatarUrl, id: post.authorId };
+        post._count = { likes: 0, comments: 0 };
         delete post.username;
         delete post.displayName;
         delete post.avatarUrl;
+
+        // Emit real-time event
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('new_post', post);
+        }
 
         res.status(201).json(post);
     } catch (error) {
@@ -277,53 +284,69 @@ exports.getPostsByUser = async (req, res) => {
 exports.likePost = async (req, res) => {
     try {
         const { postId } = req.params;
-        const { type = 'like' } = req.body; // Default to 'like' if not provided
+        const { type = 'like' } = req.body;
 
         const [existing] = await pool.execute(
-            'SELECT * FROM \`Like\` WHERE postId = ? AND userId = ?',
+            'SELECT * FROM `Like` WHERE postId = ? AND userId = ?',
             [postId, req.userId]
         );
+
+        let finalLiked = true;
+        let finalType = type;
 
         if (existing.length > 0) {
             if (existing[0].type === type) {
                 // Same reaction clicked -> Toggle off (Delete)
-                await pool.execute('DELETE FROM \`Like\` WHERE id = ?', [existing[0].id]);
-                return res.json({ liked: false, type: null });
+                await pool.execute('DELETE FROM `Like` WHERE id = ?', [existing[0].id]);
+                finalLiked = false;
+                finalType = null;
             } else {
                 // Different reaction clicked -> Update type
-                await pool.execute('UPDATE \`Like\` SET type = ? WHERE id = ?', [type, existing[0].id]);
-                return res.json({ liked: true, type: type });
+                await pool.execute('UPDATE `Like` SET type = ? WHERE id = ?', [type, existing[0].id]);
+                finalLiked = true;
+                finalType = type;
+            }
+        } else {
+            // New reaction
+            const likeId = uuidv4();
+            await pool.execute(
+                'INSERT INTO `Like` (id, postId, userId, type) VALUES (?, ?, ?, ?)',
+                [likeId, postId, req.userId, type]
+            );
+
+            // Get post author for notification
+            const [postInfo] = await pool.execute(
+                'SELECT authorId FROM Post WHERE id = ?',
+                [postId]
+            );
+
+            // Send notification to post author (don't notify yourself)
+            if (postInfo[0] && postInfo[0].authorId !== req.userId) {
+                const io = req.app.get('io');
+                await sendNotification(io, postInfo[0].authorId, {
+                    type: 'like',
+                    message: `reacted with ${type} to your post`,
+                    fromUserId: req.userId,
+                    postId: postId
+                });
+
+                // Award reputation to post author
+                await updateReputation(postInfo[0].authorId, REPUTATION_POINTS.RECEIVE_LIKE);
             }
         }
 
-        // New reaction
-        const likeId = uuidv4();
-        await pool.execute(
-            'INSERT INTO \`Like\` (id, postId, userId, type) VALUES (?, ?, ?, ?)',
-            [likeId, postId, req.userId, type]
-        );
-
-        // Get post author for notification
-        const [postInfo] = await pool.execute(
-            'SELECT authorId FROM Post WHERE id = ?',
+        // Get updated like count for real-time update
+        const [[{ count: newLikeCount }]] = await pool.execute(
+            'SELECT COUNT(*) as count FROM `Like` WHERE postId = ?',
             [postId]
         );
 
-        // Send notification to post author (don't notify yourself)
-        if (postInfo[0] && postInfo[0].authorId !== req.userId) {
-            const io = req.app.get('io');
-            await sendNotification(io, postInfo[0].authorId, {
-                type: 'like', // Notification type remains 'like' for simplicity, or could be dynamic
-                message: `reacted with ${type} to your post`,
-                fromUserId: req.userId,
-                postId: postId
-            });
-
-            // Award reputation to post author
-            await updateReputation(postInfo[0].authorId, REPUTATION_POINTS.RECEIVE_LIKE);
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('like_update', { postId, likeCount: parseInt(newLikeCount) });
         }
 
-        res.json({ liked: true, type: type });
+        res.json({ liked: finalLiked, type: finalType });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Error liking post' });
@@ -533,5 +556,72 @@ exports.getComments = async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Error fetching comments' });
+    }
+};
+
+exports.getPostById = async (req, res) => {
+    try {
+        const { postId } = req.params;
+        const currentUserId = req.userId;
+
+        const query = `
+            SELECT p.*, u.username, u.avatarUrl, u.displayName, u.isPrivate,
+            (SELECT COUNT(*) FROM \`Like\` WHERE postId = p.id) as likeCount,
+            (SELECT COUNT(*) FROM Comment WHERE postId = p.id) as commentCount
+            FROM Post p 
+            JOIN User u ON p.authorId = u.id 
+            WHERE p.id = ?
+            AND (
+                p.privacy = 'public'
+                OR p.authorId = ?
+                OR (p.privacy = 'friends' AND EXISTS (
+                    SELECT 1 FROM Friendship 
+                    WHERE ((userId = ? AND friendId = p.authorId) OR (userId = p.authorId AND friendId = ?))
+                    AND status = 'accepted'
+                ))
+            )
+            AND NOT EXISTS (
+                SELECT 1 FROM BlockedUser 
+                WHERE (blockerId = ? AND blockedId = p.authorId)
+                OR (blockerId = p.authorId AND blockedId = ?)
+            )
+        `;
+
+        const [posts] = await pool.execute(query, [
+            postId,
+            currentUserId || null,
+            currentUserId || null, currentUserId || null,
+            currentUserId || null, currentUserId || null
+        ]);
+
+        if (posts.length === 0) {
+            return res.status(404).json({ message: 'Post not found or authorized' });
+        }
+
+        const post = posts[0];
+        const formatted = {
+            ...post,
+            author: {
+                id: post.authorId,
+                username: post.username,
+                displayName: post.displayName,
+                avatarUrl: post.avatarUrl
+            },
+            _count: {
+                likes: parseInt(post.likeCount || 0),
+                comments: parseInt(post.commentCount || 0)
+            }
+        };
+        delete formatted.username;
+        delete formatted.displayName;
+        delete formatted.avatarUrl;
+        delete formatted.likeCount;
+        delete formatted.commentCount;
+        delete formatted.isPrivate;
+
+        res.json(formatted);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error fetching post' });
     }
 };

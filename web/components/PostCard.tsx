@@ -18,9 +18,10 @@ interface PostCardProps {
     onUpdate?: (post: any) => void;
     onEdit?: (post: any) => void;
     onViewComments?: (post: any) => void;
+    onClick?: () => void;
 }
 
-export default function PostCard({ post, isGuest = false, onDelete, onUpdate, onEdit, onViewComments }: PostCardProps) {
+export default function PostCard({ post, isGuest = false, onDelete, onUpdate, onEdit, onViewComments, onClick }: PostCardProps) {
     const [reactionType, setReactionType] = useState<string | null>(null);
     const [likeCount, setLikeCount] = useState(post._count?.likes || 0);
     const [commentCount, setCommentCount] = useState(post._count?.comments || 0);
@@ -115,42 +116,38 @@ export default function PostCard({ post, isGuest = false, onDelete, onUpdate, on
         }
     };
 
-    const { openAuthModal, user: sessionUser } = useAuth();
+    const { openAuthModal, requireAuth, user: sessionUser } = useAuth();
     const currentUserId = sessionUser?.id;
 
     const handleReaction = async (type: string) => {
-        if (!currentUserId) {
-            openAuthModal('login');
-            return;
-        }
-
-        const previousType = reactionType;
-
-        // Optimistic UI Update
-        if (reactionType === type) {
-            // Toggle off
-            setReactionType(null);
-            setLikeCount((prev: number) => Math.max(0, prev - 1));
-        } else {
-            // Change or Add
-            setReactionType(type);
-            if (!previousType) {
-                setLikeCount((prev: number) => prev + 1);
-            }
-        }
-        setShowReactions(false);
-
-        try {
-            const response = await api.post(`/posts/${post.id}/like`, { type });
-            if (response.data.liked) {
-                setReactionType(response.data.type);
-            } else {
+        requireAuth(async () => {
+            const previousType = reactionType;
+            // Optimistic UI Update
+            if (reactionType === type) {
+                // Toggle off
                 setReactionType(null);
+                setLikeCount((prev: number) => Math.max(0, prev - 1));
+            } else {
+                // Change or Add
+                setReactionType(type);
+                if (!previousType) {
+                    setLikeCount((prev: number) => prev + 1);
+                }
             }
-        } catch (error) {
-            console.error('Failed to react:', error);
-            setReactionType(previousType);
-        }
+            setShowReactions(false);
+
+            try {
+                const response = await api.post(`/posts/${post.id}/like`, { type });
+                if (response.data.liked) {
+                    setReactionType(response.data.type);
+                } else {
+                    setReactionType(null);
+                }
+            } catch (error) {
+                console.error('Failed to react:', error);
+                setReactionType(previousType);
+            }
+        }, 'Join the community to support creators!');
     };
 
     const handleDelete = async () => {
@@ -176,6 +173,7 @@ export default function PostCard({ post, isGuest = false, onDelete, onUpdate, on
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
             className={`bg-gradient-to-br from-[#1e293b]/60 to-[#0f172a]/40 backdrop-blur-xl border border-[#334155]/50 rounded-2xl mb-4 hover:border-[#475569]/70 hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300 group relative ${showMenu ? 'z-[100]' : 'z-auto'}`}
+            onClick={onClick}
         >
             {/* Header */}
             <div className="p-2 flex items-center justify-between">
@@ -343,7 +341,7 @@ export default function PostCard({ post, isGuest = false, onDelete, onUpdate, on
 
                     <motion.button
                         whileTap={{ scale: 0.9 }}
-                        onClick={() => onViewComments && onViewComments(post)}
+                        onClick={() => requireAuth(() => onViewComments && onViewComments(post), 'Log in to join the conversation!')}
                         className="flex items-center gap-1.5 group/comment"
                     >
                         <div className="p-1.5 rounded-full group-hover/comment:bg-blue-500/10 transition-colors">
@@ -355,6 +353,19 @@ export default function PostCard({ post, isGuest = false, onDelete, onUpdate, on
 
                 <motion.button
                     whileTap={{ scale: 0.9 }}
+                    onClick={() => {
+                        const url = `${window.location.origin}/profile/${post.author.username}/${post.id}`;
+                        if (navigator.share) {
+                            navigator.share({
+                                title: `Post by ${post.author.displayName || post.author.username}`,
+                                text: post.content,
+                                url: url
+                            }).catch(console.error);
+                        } else {
+                            navigator.clipboard.writeText(url);
+                            alert('Link copied to clipboard!');
+                        }
+                    }}
                     className="p-1.5 rounded-full hover:bg-white/5 transition-colors text-[#64748b] hover:text-white group/share"
                 >
                     <Share2 className="w-4 h-4" />
@@ -402,7 +413,7 @@ export default function PostCard({ post, isGuest = false, onDelete, onUpdate, on
 
                     {commentCount > 1 && (
                         <button
-                            onClick={() => onViewComments && onViewComments(post)}
+                            onClick={() => requireAuth(() => onViewComments && onViewComments(post), 'Log in to join the conversation!')}
                             className="mt-2 text-xs text-[#64748b] hover:text-blue-500 transition-colors font-semibold flex items-center gap-1 group/viewall"
                         >
                             <span>View all {commentCount} comments</span>

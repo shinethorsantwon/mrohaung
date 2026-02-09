@@ -14,9 +14,11 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 
 
+const optionalAuthMiddleware = require('../middleware/optionalAuthMiddleware');
+
 router.get('/search', authMiddleware, profileController.searchUsers);
 
-router.get('/:id', profileController.getProfile);
+router.get('/:id', optionalAuthMiddleware, profileController.getProfile);
 
 router.put('/', authMiddleware, upload.fields([{ name: 'avatar', maxCount: 1 }, { name: 'cover', maxCount: 1 }]), profileController.updateProfile);
 

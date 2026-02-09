@@ -4,6 +4,8 @@ const { uploadFile } = require('../utils/minio');
 exports.getProfile = async (req, res) => {
     try {
         const identifier = req.params.id;
+        const currentUserId = req.userId;
+
         const [users] = await pool.query(
             `SELECT u.id, u.username, u.displayName, u.bio, u.avatarUrl, u.coverUrl, u.coverOffset, u.createdAt, u.reputation,
             (SELECT COUNT(*) FROM Post WHERE authorId = u.id) as postCount,
@@ -16,6 +18,21 @@ exports.getProfile = async (req, res) => {
         if (users.length === 0) return res.status(404).json({ message: 'User not found' });
 
         const user = users[0];
+
+        // Check if current user is blocked by this user
+        if (currentUserId && currentUserId !== user.id) {
+            const [blocks] = await pool.execute(
+                'SELECT 1 FROM BlockedUser WHERE blockerId = ? AND blockedId = ?',
+                [user.id, currentUserId]
+            );
+            if (blocks.length > 0) {
+                return res.status(403).json({
+                    message: 'You are blocked by this user',
+                    isBlocked: true
+                });
+            }
+        }
+
         // Normalize counts to numbers
         user._count = {
             posts: parseInt(user.postCount || 0),

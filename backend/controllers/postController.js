@@ -55,15 +55,17 @@ exports.getFeed = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
         const totalLimit = parseInt(req.query.limit) || 10;
-        const currentUserId = req.userId; // Can be null now
+        const currentUserId = req.userId; // Can be null (Guest)
+
+        const offset = (page - 1) * totalLimit;
 
         if (!currentUserId) {
             // Guest Feed: Show only public posts
-            const offset = (page - 1) * totalLimit;
             const guestQuery = `
                 SELECT p.*, u.username, u.avatarUrl, u.displayName, u.isPrivate,
                 (SELECT COUNT(*) FROM \`Like\` WHERE postId = p.id) as likeCount,
                 (SELECT COUNT(*) FROM Comment WHERE postId = p.id) as commentCount,
+                FALSE as isLiked,
                 'suggested' as feedType
                 FROM Post p 
                 JOIN User u ON p.authorId = u.id 
@@ -83,6 +85,7 @@ exports.getFeed = async (req, res) => {
                         displayName: post.displayName,
                         avatarUrl: post.avatarUrl
                     },
+                    isLiked: false,
                     _count: {
                         likes: parseInt(post.likeCount || 0),
                         comments: parseInt(post.commentCount || 0)
@@ -112,6 +115,7 @@ exports.getFeed = async (req, res) => {
             SELECT p.*, u.username, u.avatarUrl, u.displayName, u.isPrivate,
             (SELECT COUNT(*) FROM \`Like\` WHERE postId = p.id) as likeCount,
             (SELECT COUNT(*) FROM Comment WHERE postId = p.id) as commentCount,
+            EXISTS(SELECT 1 FROM \`Like\` WHERE postId = p.id AND userId = ?) as isLiked,
             'friend' as feedType
             FROM Post p 
             JOIN User u ON p.authorId = u.id 
@@ -138,6 +142,7 @@ exports.getFeed = async (req, res) => {
             SELECT p.*, u.username, u.avatarUrl, u.displayName, u.isPrivate,
             (SELECT COUNT(*) FROM \`Like\` WHERE postId = p.id) as likeCount,
             (SELECT COUNT(*) FROM Comment WHERE postId = p.id) as commentCount,
+            EXISTS(SELECT 1 FROM \`Like\` WHERE postId = p.id AND userId = ?) as isLiked,
             'suggested' as feedType
             FROM Post p 
             JOIN User u ON p.authorId = u.id 
@@ -159,12 +164,14 @@ exports.getFeed = async (req, res) => {
         `;
 
         const [friendPosts] = await pool.query(friendsQuery, [
+            currentUserId,
             currentUserId, currentUserId,
             currentUserId, currentUserId, currentUserId,
             friendLimit, friendOffset
         ]);
 
         const [suggestedPosts] = await pool.query(suggestedQuery, [
+            currentUserId,
             currentUserId, currentUserId, currentUserId,
             currentUserId, currentUserId,
             suggestedLimit, suggestedOffset
@@ -183,6 +190,7 @@ exports.getFeed = async (req, res) => {
                     displayName: post.displayName,
                     avatarUrl: post.avatarUrl
                 },
+                isLiked: !!post.isLiked,
                 _count: {
                     likes: parseInt(post.likeCount || 0),
                     comments: parseInt(post.commentCount || 0)
@@ -527,12 +535,14 @@ exports.getComments = async (req, res) => {
         const { postId } = req.params;
 
         const [comments] = await pool.execute(
-            `SELECT c.*, u.username, u.avatarUrl, u.displayName 
+            `SELECT c.*, u.username, u.avatarUrl, u.displayName,
+             (SELECT COUNT(*) FROM CommentLike WHERE commentId = c.id) as likeCount,
+             EXISTS(SELECT 1 FROM CommentLike WHERE commentId = c.id AND userId = ?) as isLiked 
              FROM Comment c 
              JOIN User u ON c.userId = u.id 
              WHERE c.postId = ?
              ORDER BY c.createdAt ASC`,
-            [postId]
+            [req.userId, postId]
         );
 
         const formattedComments = comments.map(comment => ({
@@ -542,7 +552,8 @@ exports.getComments = async (req, res) => {
                 username: comment.username,
                 displayName: comment.displayName,
                 avatarUrl: comment.avatarUrl
-            }
+            },
+            isLiked: !!comment.isLiked
         }));
 
         // Clean up flat fields
@@ -567,7 +578,8 @@ exports.getPostById = async (req, res) => {
         const query = `
             SELECT p.*, u.username, u.avatarUrl, u.displayName, u.isPrivate,
             (SELECT COUNT(*) FROM \`Like\` WHERE postId = p.id) as likeCount,
-            (SELECT COUNT(*) FROM Comment WHERE postId = p.id) as commentCount
+            (SELECT COUNT(*) FROM Comment WHERE postId = p.id) as commentCount,
+            EXISTS(SELECT 1 FROM \`Like\` WHERE postId = p.id AND userId = ?) as isLiked
             FROM Post p 
             JOIN User u ON p.authorId = u.id 
             WHERE p.id = ?
@@ -588,6 +600,7 @@ exports.getPostById = async (req, res) => {
         `;
 
         const [posts] = await pool.execute(query, [
+            currentUserId || null,
             postId,
             currentUserId || null,
             currentUserId || null, currentUserId || null,
@@ -607,6 +620,7 @@ exports.getPostById = async (req, res) => {
                 displayName: post.displayName,
                 avatarUrl: post.avatarUrl
             },
+            isLiked: !!post.isLiked,
             _count: {
                 likes: parseInt(post.likeCount || 0),
                 comments: parseInt(post.commentCount || 0)

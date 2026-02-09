@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, User, Lock, Bell, Shield, LogOut, Trash2 } from 'lucide-react';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import ThemeToggle from '@/components/ThemeToggle';
 import api from '@/lib/api';
 
 export default function SettingsPage() {
@@ -166,6 +167,15 @@ export default function SettingsPage() {
                                 </h2>
                             </div>
                             <div className="divide-y divide-[#334155]">
+                                <div className="px-4 py-4 flex items-center justify-between">
+                                    <div>
+                                        <p className="font-semibold text-white">Dark Mode</p>
+                                        <p className="text-sm text-[#64748b]">Toggle application theme</p>
+                                    </div>
+                                    <div className="scale-125">
+                                        <ThemeToggle />
+                                    </div>
+                                </div>
                                 <div className="px-4 py-4 flex items-center justify-between">
                                     <div>
                                         <p className="font-semibold text-white">Private Account</p>

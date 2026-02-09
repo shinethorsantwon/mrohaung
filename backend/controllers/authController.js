@@ -70,10 +70,12 @@ exports.register = async (req, res) => {
         // Create user
         await pool.execute(
             'INSERT INTO User (id, username, email, password, displayName, dob, gender, phoneNumber, verificationToken, isVerified) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [userId, username, email, hashedPassword, displayName, dob || null, gender || null, phoneNumber || null, verificationToken, false]
+            [userId, username, email, hashedPassword, displayName, dob || null, gender || null, phoneNumber || null, verificationToken, true]
         );
 
-        // Send verification email
+        /* 
+        // Send verification email (DISABLED TEMPORARILY AS PER USER REQUEST)
+
         const frontendUrl = process.env.FRONTEND_URL || 'https://mrohaung.com';
         const verifyUrl = `${frontendUrl}/verify-email?token=${verificationToken}`;
 
@@ -99,8 +101,32 @@ exports.register = async (req, res) => {
             console.error('Failed to send verification email:', emailError);
             // We catch the error but don't fail registration, though ideally we might notify user
         }
+        */
 
-        res.status(201).json({ message: 'User registered successfully. Please check your email to verify your account.', userId, username });
+
+        // Generate token for auto-login
+        const token = jwt.sign({ userId, username }, process.env.JWT_SECRET, { expiresIn: '7d' });
+
+        // Set HttpOnly cookie for persistence and security
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+        });
+
+        res.status(201).json({
+            success: true,
+            message: 'User registered successfully.',
+            token,
+            user: {
+                id: userId,
+                username,
+                email,
+                displayName,
+                isVerified: true
+            }
+        });
     } catch (error) {
         console.error('Registration Error:', error);
         res.status(500).json({ message: 'Internal server error' });
@@ -137,6 +163,8 @@ exports.verifyEmail = async (req, res) => {
 };
 
 exports.login = async (req, res) => {
+    console.log('--- LOGIN ATTEMPT ---');
+    console.log('Body:', req.body);
     try {
         const { email, password } = req.body;
 
@@ -152,13 +180,15 @@ exports.login = async (req, res) => {
             return res.status(400).json({ message: 'Invalid credentials' });
         }
 
-        // Check if verified
+        // Check if verified (DISABLED TEMPORARILY)
+        /*
         if (!user.isVerified) {
             return res.status(403).json({
                 message: 'Please verify your email first',
                 needsVerification: true
             });
         }
+        */
 
         // Check password
         const isMatch = await bcrypt.compare(password, user.password);
@@ -169,7 +199,17 @@ exports.login = async (req, res) => {
         // Generate token
         const token = jwt.sign({ userId: user.id, username: user.username }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
+        // Set HttpOnly cookie for persistence and security
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+        });
+
+        // CRITICAL: Also return token explicitly in response body for immediate frontend use
         res.json({
+            success: true,
             message: 'Login successful',
             token,
             user: {

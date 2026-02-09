@@ -72,7 +72,7 @@ export default function SearchBar() {
                     onChange={(e) => setQuery(e.target.value)}
                     onFocus={() => setShowResults(true)}
                     placeholder="Search people, posts..."
-                    className="w-full bg-[#1e293b] border-none rounded-full pl-10 pr-10 py-2 text-sm focus:ring-1 focus:ring-blue-500/50 transition-all"
+                    className="w-full bg-[#1e293b] border-none rounded-full pl-10 pr-10 py-2 text-sm text-white focus:ring-1 focus:ring-blue-500/50 transition-all"
                 />
                 {query && (
                     <button

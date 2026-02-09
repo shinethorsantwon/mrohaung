@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { UserPlus, X, Users } from 'lucide-react';
+import { motion } from 'framer-motion';
 import api from '@/lib/api';
 import Link from 'next/link';
 import { fixUrl } from '@/lib/utils';
@@ -100,92 +101,63 @@ export default function FriendSuggestions() {
     }
 
     return (
-        <div className="bg-[#1e293b]/50 backdrop-blur-xl border border-[#334155] rounded-2xl p-4">
-            <h3 className="text-lg font-bold text-white mb-4">Suggested for you</h3>
-            <div className="space-y-3">
-                {visibleSuggestions.map((suggestion) => (
-                    <div key={suggestion.id} className="flex items-start gap-3 group">
-                        <Link href={`/profile/${suggestion.username}`}>
-                            {suggestion.avatarUrl ? (
-                                <img
-                                    src={fixUrl(suggestion.avatarUrl)}
-                                    alt={suggestion.displayName || suggestion.username || ''}
-                                    className="w-10 h-10 rounded-full object-cover cursor-pointer hover:opacity-80 transition-opacity"
-                                />
-                            ) : (
-                                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-600 to-purple-600 cursor-pointer hover:opacity-80 transition-opacity" />
-                            )}
+        <div className="bg-[#0f172a]/20 backdrop-blur-3xl border border-white/5 rounded-2xl p-3 shadow-xl">
+            <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-3 px-1">
+                Discover
+            </h3>
+
+            <div className="space-y-2">
+                {visibleSuggestions.map((suggestion, idx) => (
+                    <motion.div
+                        initial={{ opacity: 0, x: 5 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: idx * 0.05 }}
+                        key={suggestion.id}
+                        className="flex items-center gap-2 group"
+                    >
+                        <Link href={`/profile/${suggestion.username}`} className="relative shrink-0">
+                            <div className="w-8 h-8 rounded-lg overflow-hidden ring-1 ring-white/5 group-hover:ring-blue-500/50 transition-all duration-300">
+                                {suggestion.avatarUrl ? (
+                                    <img
+                                        src={fixUrl(suggestion.avatarUrl)}
+                                        alt=""
+                                        className="w-full h-full object-cover"
+                                    />
+                                ) : (
+                                    <div className="w-full h-full bg-slate-800 flex items-center justify-center text-white font-black text-[10px]">
+                                        {(suggestion.displayName || suggestion.username)?.[0]?.toUpperCase()}
+                                    </div>
+                                )}
+                            </div>
                         </Link>
 
                         <div className="flex-1 min-w-0">
                             <Link href={`/profile/${suggestion.username}`}>
-                                <p className="text-white font-medium text-sm hover:underline cursor-pointer truncate">
+                                <p className="text-xs text-white font-bold hover:text-blue-400 truncate transition-colors leading-tight">
                                     {suggestion.displayName || suggestion.username}
                                 </p>
                             </Link>
-
-                            {suggestion.mutualFriendsCount > 0 ? (
-                                <div className="flex items-center gap-1 text-xs text-[#64748b] mt-0.5">
-                                    <Users className="w-3 h-3" />
-                                    <span>
-                                        {suggestion.mutualFriendsCount} mutual friend{suggestion.mutualFriendsCount > 1 ? 's' : ''}
-                                    </span>
-                                </div>
-                            ) : suggestion.friendsCount !== undefined && (
-                                <p className="text-xs text-[#64748b] mt-0.5">
-                                    {suggestion.friendsCount} friends
-                                </p>
-                            )}
-
-                            {suggestion.mutualFriends && suggestion.mutualFriends.length > 0 && (
-                                <div className="flex items-center gap-1 mt-1">
-                                    {suggestion.mutualFriends.slice(0, 3).map((friend) => (
-                                        <div key={friend.id} className="relative group/avatar">
-                                            {friend.avatarUrl ? (
-                                                <img
-                                                    src={fixUrl(friend.avatarUrl)}
-                                                    alt={friend.displayName || friend.username || ''}
-                                                    className="w-5 h-5 rounded-full border border-[#1e293b]"
-                                                    title={friend.displayName || friend.username}
-                                                />
-                                            ) : (
-                                                <div
-                                                    className="w-5 h-5 rounded-full bg-gradient-to-tr from-blue-600 to-purple-600 border border-[#1e293b]"
-                                                    title={friend.displayName || friend.username}
-                                                />
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+                            <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">
+                                {suggestion.mutualFriendsCount > 0 ? `${suggestion.mutualFriendsCount} Mutual` : 'Mesh Node'}
+                            </p>
                         </div>
 
-                        <div className="flex items-center gap-1">
-                            <button
-                                onClick={() => handleAddFriend(suggestion.id)}
-                                className="p-1.5 hover:bg-blue-500/10 rounded-lg transition-colors"
-                                title="Add friend"
-                            >
-                                <UserPlus className="w-4 h-4 text-blue-500" />
-                            </button>
-                            <button
-                                onClick={() => handleDismiss(suggestion.id)}
-                                className="p-1.5 hover:bg-[#334155] rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                                title="Dismiss"
-                            >
-                                <X className="w-4 h-4 text-[#64748b]" />
-                            </button>
-                        </div>
-                    </div>
+                        <button
+                            onClick={() => handleAddFriend(suggestion.id)}
+                            className="w-7 h-7 flex items-center justify-center bg-blue-600/10 hover:bg-blue-600 text-blue-500 hover:text-white rounded-lg transition-all duration-300 active:scale-95 group/btn"
+                        >
+                            <UserPlus className="w-3.5 h-3.5" />
+                        </button>
+                    </motion.div>
                 ))}
             </div>
 
             {visibleSuggestions.length > 0 && (
                 <button
                     onClick={fetchSuggestions}
-                    className="w-full mt-3 text-sm text-blue-500 hover:text-blue-400 font-medium transition-colors"
+                    className="w-full mt-3 py-1.5 text-slate-600 hover:text-white text-[8px] font-black uppercase tracking-[0.2em] transition-all hover:bg-white/5 rounded-lg border border-white/5"
                 >
-                    See more suggestions
+                    Refresh
                 </button>
             )}
         </div>

@@ -28,6 +28,7 @@ model User {
   friendOf              Friendship[]               @relation("friend")
   likes                 Like[]
   comments              Comment[]
+  commentLikes          CommentLike[]
   notifications         Notification[]             @relation("notificationUser")
   sentNotifications     Notification[]             @relation("notificationFrom")
   conversations         ConversationParticipant[]
@@ -119,6 +120,7 @@ model Comment {
   replies   Comment[] @relation("CommentReplies")
   post      Post     @relation(fields: [postId], references: [id])
   user      User     @relation(fields: [userId], references: [id])
+  likes     CommentLike[]
   createdAt DateTime @default(now())
 }
 
@@ -142,6 +144,18 @@ model Conversation {
   messages      Message[]
   lastMessageAt DateTime?
   createdAt     DateTime                   @default(now())
+}
+
+model CommentLike {
+  id        String   @id @default(uuid())
+  commentId String
+  userId    String
+  type      String   @default("like")
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([commentId, userId])
 }
 
 model ConversationParticipant {

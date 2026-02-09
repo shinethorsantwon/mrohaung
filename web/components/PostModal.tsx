@@ -75,221 +75,15 @@ const AudioCommentPlayer = ({ src }: { src: string }) => {
     );
 };
 
-function CommentItem({ comment, currentUserId, onUpdate, onDelete, onReply, replies = [] }: { comment: any; currentUserId?: string; onUpdate?: (id: string, content: string) => void; onDelete?: (id: string) => void; onReply?: (username: string, commentId: string) => void; replies?: any[] }) {
-    const [isExpanded, setIsExpanded] = useState(false);
-    const [isEditing, setIsEditing] = useState(false);
-    const [editContent, setEditContent] = useState(comment.content || '');
-    const [showMenu, setShowMenu] = useState(false);
-    const [saving, setSaving] = useState(false);
-    const [liked, setLiked] = useState(false);
-    const [likeCount, setLikeCount] = useState(0);
-    const [showReplyInput, setShowReplyInput] = useState(false);
-
-    const editRef = useRef<HTMLTextAreaElement>(null);
-
-    useEffect(() => {
-        if (isEditing && editRef.current) {
-            editRef.current.style.height = 'auto';
-            editRef.current.style.height = editRef.current.scrollHeight + 'px';
-        }
-    }, [editContent, isEditing]);
-
-    const isOwnComment = currentUserId === comment.user?.id;
-
-    const handleSaveEdit = async () => {
-        if (!editContent.trim() && !comment.stickerUrl && !comment.audioUrl) return;
-        setSaving(true);
-        try {
-            await api.put(`/comments/${comment.id}`, { content: editContent });
-            comment.content = editContent;
-            setIsEditing(false);
-            if (onUpdate) onUpdate(comment.id, editContent);
-        } catch (error) {
-            console.error('Failed to update comment:', error);
-            alert('Failed to update comment');
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    const handleDelete = async () => {
-        if (!confirm('Are you sure you want to delete this comment?')) return;
-        try {
-            await api.delete(`/comments/${comment.id}`);
-            if (onDelete) onDelete(comment.id);
-        } catch (error) {
-            console.error('Failed to delete comment:', error);
-            alert('Failed to delete comment');
-        }
-    };
-
-    const handleLike = () => {
-        setLiked(!liked);
-        setLikeCount(prev => liked ? prev - 1 : prev + 1);
-        // TODO: API call to like comment
-    };
-
-    return (
-        <div className="flex flex-col w-full gap-1">
-            <div className="flex items-start gap-2 group relative w-full">
-                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex-shrink-0 overflow-hidden ring-2 ring-blue-500/10 mt-0.5">
-                    {comment.user?.avatarUrl ? (
-                        <img src={fixUrl(comment.user.avatarUrl)} alt={comment.user?.displayName || comment.user?.username || ''} className="w-full h-full object-cover" />
-                    ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gray-700">
-                            <span className="text-white text-[10px] font-bold">
-                                {(comment.user?.displayName || comment.user?.username)?.[0]?.toUpperCase() || 'U'}
-                            </span>
-                        </div>
-                    )}
-                </div>
-                <div className="flex-1 flex items-start gap-1 min-w-0">
-                    <div className="flex flex-col gap-1">
-                        <div className="bg-[#1e293b]/60 backdrop-blur-sm rounded-2xl px-3 py-1.5 border border-[#334155]/20 hover:border-[#475569]/30 transition-all w-fit max-w-[214px]">
-                            <div className="flex items-center gap-1.5 mb-0.5">
-                                <p className="text-xs font-bold text-white">
-                                    {comment.user?.displayName || comment.user?.username || 'User'}
-                                </p>
-                            </div>
-                            {isEditing ? (
-                                <div className="w-full">
-                                    <textarea
-                                        ref={editRef}
-                                        value={editContent}
-                                        onChange={(e) => setEditContent(e.target.value)}
-                                        className="w-full bg-transparent border-none p-0 text-[13px] text-[#e2e8f0] resize-none focus:outline-none focus:ring-0 overflow-hidden min-h-[20px] leading-relaxed"
-                                        placeholder="Edit your comment..."
-                                        autoFocus
-                                        rows={1}
-                                        maxLength={10000}
-                                    />
-                                    <div className="flex justify-end gap-2 mt-2">
-                                        <button
-                                            onClick={() => { setIsEditing(false); setEditContent(comment.content || ''); }}
-                                            className="text-[10px] font-medium text-[#94a3b8] hover:text-white transition-colors"
-                                        >
-                                            Cancel
-                                        </button>
-                                        <button
-                                            onClick={handleSaveEdit}
-                                            disabled={saving}
-                                            className="px-2 py-0.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-[10px] font-bold text-white rounded shadow-sm transition-all flex items-center gap-1"
-                                        >
-                                            {saving ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : null}
-                                            Save
-                                        </button>
-                                    </div>
-                                </div>
-                            ) : (
-                                <>
-                                    {comment.content && (
-                                        <div className="relative">
-                                            <p className={`text-[13px] text-[#e2e8f0] leading-relaxed break-words whitespace-pre-wrap ${!isExpanded && 'line-clamp-3'}`}>
-                                                {comment.content}
-                                            </p>
-                                            {comment.content.length > 120 && (
-                                                <button
-                                                    onClick={() => setIsExpanded(!isExpanded)}
-                                                    className="text-[11px] font-bold text-blue-400 hover:text-blue-300 transition-colors mt-1 block hover:underline"
-                                                >
-                                                    {isExpanded ? 'See Less' : 'See More'}
-                                                </button>
-                                            )}
-                                        </div>
-                                    )}
-                                    {comment.stickerUrl && <img src={fixUrl(comment.stickerUrl)} alt="Sticker" className="w-16 h-16 object-contain mt-1.5" />}
-                                    {comment.audioUrl && <div className="mt-1.5"><AudioCommentPlayer src={fixUrl(comment.audioUrl) || ''} /></div>}
-                                </>
-                            )}
-                        </div>
-                        {/* Action Buttons - Like & Reply */}
-                        {!isEditing && (
-                            <div className="flex items-center gap-3 px-2">
-                                <button
-                                    onClick={handleLike}
-                                    className={`text-[11px] font-bold transition-colors ${liked ? 'text-blue-500' : 'text-[#64748b] hover:text-blue-400'}`}
-                                >
-                                    Like{likeCount > 0 && ` · ${likeCount}`}
-                                </button>
-                                <button
-                                    onClick={() => onReply && onReply(comment.user?.username || 'User', comment.id)}
-                                    className="text-[11px] font-bold text-[#64748b] hover:text-blue-400 transition-colors"
-                                >
-                                    Reply
-                                </button>
-                                <span className="text-[10px] text-[#64748b]">{formatTimeRelative(comment.createdAt)}</span>
-                            </div>
-                        )}
-                    </div>
-                    {isOwnComment && !isEditing && (
-                        <div className="relative">
-                            <button
-                                onClick={() => setShowMenu(!showMenu)}
-                                className="opacity-0 group-hover:opacity-100 p-1 hover:bg-white/10 rounded-full transition-all text-[#64748b] hover:text-white"
-                            >
-                                <MoreHorizontal className="w-3.5 h-3.5" />
-                            </button>
-                            <AnimatePresence>
-                                {showMenu && (
-                                    <>
-                                        <motion.div
-                                            initial={{ opacity: 0, scale: 0.95, y: -5 }}
-                                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                                            exit={{ opacity: 0, scale: 0.95, y: -5 }}
-                                            className="absolute right-0 mt-1 w-32 bg-[#1e293b]/95 backdrop-blur-xl rounded-xl shadow-2xl overflow-hidden z-[150] border border-[#334155]/50"
-                                        >
-                                            <div className="py-0.5">
-                                                <button
-                                                    onClick={() => { setShowMenu(false); setIsEditing(true); }}
-                                                    className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-white hover:bg-[#334155]/50 transition-colors group/edit font-semibold"
-                                                >
-                                                    <Edit2 className="w-3 h-3 text-blue-400" />
-                                                    Edit
-                                                </button>
-                                                <button
-                                                    onClick={() => { setShowMenu(false); handleDelete(); }}
-                                                    className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-red-500 hover:bg-red-500/10 transition-colors group/delete font-semibold"
-                                                >
-                                                    <Trash2 className="w-3 h-3 text-red-400" />
-                                                    Delete
-                                                </button>
-                                            </div>
-                                        </motion.div>
-                                        <div className="fixed inset-0 z-[140]" onClick={() => setShowMenu(false)} />
-                                    </>
-                                )}
-                            </AnimatePresence>
-                        </div>
-                    )}
-                </div>
-            </div>
-            {/* Render Replies */}
-            {replies.length > 0 && (
-                <div className="pl-11 mt-2 space-y-3 relative">
-                    <div className="absolute left-[1.35rem] top-0 bottom-0 w-0.5 bg-[#334155]/20 rounded-full" />
-                    {replies.map(reply => (
-                        <CommentItem
-                            key={reply.id}
-                            comment={reply}
-                            currentUserId={currentUserId}
-                            onUpdate={onUpdate}
-                            onDelete={onDelete}
-                            onReply={onReply}
-                            replies={[]} // Limit nesting to 1 level for now
-                        />
-                    ))}
-                </div>
-            )}
-        </div>
-    );
-}
+// CommentItem removed - using CommentSection component
+import CommentSection from './CommentSection';
 
 export default function PostModal({ isOpen, onClose, post, onUpdate, onDelete, currentUserId }: PostModalProps) {
     const [comments, setComments] = useState<any[]>([]);
     const [commentText, setCommentText] = useState('');
     const [loading, setLoading] = useState(false);
     const [submitting, setSubmitting] = useState(false);
-    const [liked, setLiked] = useState(false);
+    const [liked, setLiked] = useState(!!post.isLiked);
     const [likeCount, setLikeCount] = useState(post._count?.likes || 0);
     const [isEditing, setIsEditing] = useState(false);
     const [editContent, setEditContent] = useState(post.content || '');
@@ -330,7 +124,7 @@ export default function PostModal({ isOpen, onClose, post, onUpdate, onDelete, c
 
     useEffect(() => {
         if (isOpen && post && post.author && post.id) {
-            const newUrl = `/${post.author.username}/${post.id}`;
+            const newUrl = `/profile/${post.author.username}/${post.id}`;
             // Avoid double pushing if already on that URL
             if (window.location.pathname !== newUrl) {
                 originalUrlRef.current = window.location.pathname + window.location.search;
@@ -434,6 +228,14 @@ export default function PostModal({ isOpen, onClose, post, onUpdate, onDelete, c
             setLoading(false);
         }
     };
+
+    // Update liked state if post prop changes and we are reopening
+    useEffect(() => {
+        if (isOpen) {
+            setLiked(!!post.isLiked);
+            setLikeCount(post._count?.likes || 0);
+        }
+    }, [isOpen, post]);
 
     const getReactionIcon = (type: string | null) => {
         switch (type) {
@@ -715,7 +517,25 @@ export default function PostModal({ isOpen, onClose, post, onUpdate, onDelete, c
                                         <span className="text-xs font-bold text-[#64748b] group-hover/comment:text-blue-500 transition-colors">{comments.length}</span>
                                     </div>
                                 </div>
-                                <motion.button whileTap={{ scale: 0.9 }} className="p-2 rounded-full hover:bg-white/5 transition-colors text-[#64748b] hover:text-white group/share translate-y-[1px]"><Share2 className="w-4 h-4" /></motion.button>
+                                <motion.button
+                                    whileTap={{ scale: 0.9 }}
+                                    onClick={() => {
+                                        const url = `${window.location.origin}/profile/${post.author.username}/${post.id}`;
+                                        if (navigator.share) {
+                                            navigator.share({
+                                                title: `Post by ${post.author.displayName || post.author.username}`,
+                                                text: post.content,
+                                                url: url
+                                            }).catch(console.error);
+                                        } else {
+                                            navigator.clipboard.writeText(url);
+                                            alert('Link copied to clipboard!');
+                                        }
+                                    }}
+                                    className="p-2 rounded-full hover:bg-white/5 transition-colors text-[#64748b] hover:text-white group/share translate-y-[1px]"
+                                >
+                                    <Share2 className="w-4 h-4" />
+                                </motion.button>
                             </div>
                         )}
                     </div>
@@ -727,24 +547,12 @@ export default function PostModal({ isOpen, onClose, post, onUpdate, onDelete, c
                             className="flex-1 overflow-y-auto min-h-0 bg-[#0f172a]/20 custom-scrollbar"
                             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                         >
-                            <div className="p-4 space-y-4">
-                                {comments.length > 0 ? (
-                                    <div className="space-y-3.5 pb-4">
-                                        {comments.filter(c => !c.parentId).map((comment) => (
-                                            <CommentItem
-                                                key={comment.id}
-                                                comment={comment}
-                                                currentUserId={currentUserId}
-                                                onUpdate={(id, content) => setComments(prev => prev.map(c => c.id === id ? { ...c, content } : c))}
-                                                onDelete={(id) => setComments(prev => prev.filter(c => c.id !== id))}
-                                                onReply={handleReply}
-                                                replies={comments.filter(c => c.parentId === comment.id)}
-                                            />
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="text-center py-6"><p className="text-[#64748b] text-xs">No comments yet</p><p className="text-[11px] text-[#475569] mt-0.5">Start the conversation!</p></div>
-                                )}
+                            <div className="p-4">
+                                <CommentSection
+                                    comments={comments}
+                                    currentUserId={currentUserId}
+                                    postId={post.id}
+                                />
                             </div>
                         </div>
                     </div>

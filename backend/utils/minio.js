@@ -15,6 +15,7 @@ const uploadFile = async (fileBuffer, originalName, mimeType) => {
         imageStore.saveImage(filename, fileBuffer, mimeType);
 
         const port = process.env.PORT || 5000;
+        // In production, BASE_URL should be set to 'https://mrohaung.com'
         const baseUrl = process.env.BASE_URL || `http://localhost:${port}`;
         const url = `${baseUrl}/api/image/${filename}`;
 

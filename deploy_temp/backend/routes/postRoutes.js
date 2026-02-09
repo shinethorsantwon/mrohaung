@@ -7,14 +7,16 @@ const multer = require('multer');
 const upload = multer({ storage: multer.memoryStorage() });
 
 const optionalAuthMiddleware = require('../middleware/optionalAuthMiddleware');
+const verificationMiddleware = require('../middleware/verificationMiddleware');
 
-router.post('/', authMiddleware, upload.single('image'), postController.createPost);
+router.post('/', authMiddleware, verificationMiddleware, upload.single('image'), postController.createPost);
 router.get('/feed', optionalAuthMiddleware, postController.getFeed);
 router.get('/user/:id', optionalAuthMiddleware, postController.getPostsByUser);
-router.post('/:postId/like', authMiddleware, postController.likePost);
-router.post('/:postId/comment', authMiddleware, upload.single('audio'), postController.addComment);
+router.get('/:postId', optionalAuthMiddleware, postController.getPostById);
+router.post('/:postId/like', authMiddleware, verificationMiddleware, postController.likePost);
+router.post('/:postId/comment', authMiddleware, verificationMiddleware, upload.single('audio'), postController.addComment);
 router.get('/:postId/comments', authMiddleware, postController.getComments);
-router.put('/:postId', authMiddleware, postController.updatePost);
+router.put('/:postId', authMiddleware, verificationMiddleware, postController.updatePost);
 router.delete('/:postId', authMiddleware, postController.deletePost);
 
 module.exports = router;

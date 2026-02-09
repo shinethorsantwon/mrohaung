@@ -183,3 +183,24 @@ exports.rejectFriendRequest = async (req, res) => {
         res.status(500).json({ message: 'Error rejecting friend request' });
     }
 };
+
+exports.getUserFriends = async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        const [friends] = await pool.execute(
+            `SELECT u.id, u.username, u.displayName, u.avatarUrl, u.bio
+             FROM Friendship f
+             JOIN User u ON (f.userId = u.id OR f.friendId = u.id)
+             WHERE (f.userId = ? OR f.friendId = ?) 
+             AND f.status = 'ACCEPTED' 
+             AND u.id != ?`,
+            [userId, userId, userId]
+        );
+
+        res.json(friends);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error fetching user friends' });
+    }
+};

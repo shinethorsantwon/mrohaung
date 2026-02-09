@@ -8,5 +8,6 @@ router.post('/accept/:requestId', authMiddleware, friendController.acceptFriendR
 router.delete('/reject/:requestId', authMiddleware, friendController.rejectFriendRequest);
 router.get('/requests', authMiddleware, friendController.getPendingRequests);
 router.get('/', authMiddleware, friendController.getFriends);
+router.get('/user/:userId', friendController.getUserFriends);
 
 module.exports = router;

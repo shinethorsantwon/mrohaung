@@ -7,10 +7,12 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
+    // Try to get token from localStorage first (for immediate use after login)
     const token = localStorage.getItem('token');
-    if (token) {
+    if (token && token !== 'undefined') {
         config.headers.Authorization = `Bearer ${token}`;
     }
+    // Note: HttpOnly cookie will be sent automatically by the browser
     return config;
 });
 
@@ -21,10 +23,7 @@ api.interceptors.response.use(
             // Clear local storage on unauthorized error
             localStorage.removeItem('token');
             localStorage.removeItem('user');
-            // Force reload to login page if we're not already there
-            if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
-                window.location.href = '/login';
-            }
+            // We NO LONGER force redirect here, as some pages support guests
         }
         return Promise.reject(error);
     }
